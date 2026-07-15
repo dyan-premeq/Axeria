@@ -1,7 +1,7 @@
 #ifndef LIVIDI_WATER_SURFACE_INCLUDED
 #define LIVIDI_WATER_SURFACE_INCLUDED
 
-#include "WaterCommon.hlsl"
+#include "WaterSpace.hlsl"
 
 half3 SampleWaterNormalTS(float2 uv)
 {
@@ -22,17 +22,37 @@ half3 SampleWaterNormalTS(float2 uv)
     return UnpackNormalScale(packedNormal, _WaterNormalStrength);
 }
 
+float3 ApplyNormalStrengthTS(float3 normalTS, float strength)
+{
+    normalTS = normalize(normalTS);
+
+    normalTS.xy *= strength;
+    normalTS.z = sqrt(saturate(
+        1.0 - dot(normalTS.xy, normalTS.xy)
+    ));
+
+    return normalTS;
+}
+
 float3 NormalBlend(float2 uv)
 {
-    float ratio = lerp(0.1, 1.0, _WaterNormalScalingRatio);
-    float2 uvA = UVPanner(uv, _WaterNormalTiling.xy, 0.5 * _WaterNormalScaling, _WaterNormalSpeed);
-    float2 uvB = UVPanner(uv, _WaterNormalTiling.xy, _WaterNormalScaling / ratio, _WaterNormalSpeed  * (-.5));
+    float ratio = lerp(0.1, 1.0, saturate(_WaterNormalScalingRatio));
+    float2 dirA = float2(0.7, 0.3);
+    float2 dirB = float2(-0.2, 0.5);
+    float2 uvA = UVPanner(uv, _WaterNormalTiling.xy, 0.5 * _WaterNormalScaling, dirA * _WaterNormalSpeed);
+    float2 uvB = UVPanner(uv, _WaterNormalTiling.xy, _WaterNormalScaling / ratio, dirB * _WaterNormalSpeed);
     
     float3 normalA = UnpackNormal(SAMPLE_TEXTURE2D(_WaterSurfaceNormalMap, sampler_WaterSurfaceNormalMap, uvA));
     float3 normalB = UnpackNormal(SAMPLE_TEXTURE2D(_WaterSurfaceNormalMap, sampler_WaterSurfaceNormalMap, uvB));
     
-    float3 resultNormal = BlendNormal(normalA, normalB);
-    return resultNormal;
+    float3 normalTS = BlendNormal(normalA, normalB);
+    return ApplyNormalStrengthTS(normalTS,_WaterNormalStrength);
+}
+
+half3 SampleWaterNormalWS(WaterSurfaceContext context)
+{
+    half3 normalTS = (half3)NormalBlend(context.planarUV);
+    return ResolvePlanarWaterNormalWS(normalTS, context.planarBasis);
 }
 
 float2 SampleSurfaceDistortion(float2 worldUV)

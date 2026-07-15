@@ -26,22 +26,17 @@ Varyings Vert(Attributes input)
 
 half4 Frag(Varyings input) : SV_Target
 {
-    float2 worldUV = input.positionWS.xz * 0.1;
+    WaterSurfaceContext surfaceContext = BuildWaterSurfaceContext(input);
+    half3 geometricNormalWS = surfaceContext.geometricNormalWS;
+    float2 worldUV = surfaceContext.planarUV;
     
     // Depth base color
     half3 shallowFactor = (half3)GetWaterShallowFactor(input, _Water_Depth);
     half4 waterBaseColor = 0;
     HSVLerp_half(_Color_Deep, _Color_Shallow, shallowFactor.z, waterBaseColor);
 
-    // Tangent-space normal map -> TBN -> world-space normal.
-    half3 geometricNormalWS = NormalizeNormalPerPixel(input.normalWS);
-    half3 normalTS = SampleWaterNormalTS(input.uv);
-    half3 waterNormalWS = TransformWaterNormalToWorld(
-        normalTS,
-        input.tangentWS,
-        input.bitangentWS,
-        geometricNormalWS
-    );
+    // Mapping-specific normal sampling always resolves to world space here.
+    half3 waterNormalWS = SampleWaterNormalWS(surfaceContext);
     
     // Surface distortion is sampled once and shared by downstream surface effects.
     float2 surfaceDistortion = SampleSurfaceDistortion(worldUV);
@@ -80,7 +75,7 @@ half4 Frag(Varyings input) : SV_Target
         _UseSurfaceFoam,
         0.0h
     );
-    return half4(waterNormalWS, 1.0);
+    // return half4(waterNormalWS, 1.0);
     return half4(finalRGB, finalAlpha);
 }
 

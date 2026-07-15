@@ -3,22 +3,11 @@
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
-half3 TransformWaterNormalToWorld(
-    half3 normalTS,
-    half3 tangentWS,
-    half3 bitangentWS,
-    half3 normalWS
-)
+half3 LightingSpecluar(float3 L, float3 N, float3 V, float smoothness)
 {
-    half3x3 TBNWS = half3x3(
-        tangentWS,
-        bitangentWS,
-        normalWS
-    );
-
-    return NormalizeNormalPerPixel(
-        TransformTangentToWorld(normalTS, TBNWS)
-    );
+    float3 H = SafeNormalize(float3(L) + float3(V));
+    float NdotH = saturate(dot(N, H));
+    return pow(NdotH, smoothness);
 }
 
 // The water color is currently stylized and unlit. Apply only the main-light
@@ -45,5 +34,7 @@ half3 ApplyWaterNormalLighting(
 
     return baseColor * normalLighting;
 }
+
+
 
 #endif
