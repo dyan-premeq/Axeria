@@ -38,43 +38,48 @@ half4 Frag(Varyings input) : SV_Target
     // Mapping-specific normal sampling always resolves to world space here.
     half3 waterNormalWS = SampleWaterNormalWS(surfaceContext);
     
-    // Surface distortion is sampled once and shared by downstream surface effects.
-    float2 surfaceDistortion = SampleSurfaceDistortion(worldUV);
     
-    // Foam 
+    bool useSurfaceFoam = _UseSurfaceFoam > 0.5;
+    bool useIntersectionFoam = _UseIntersecFoam > 0.5;
+    bool useShorelineFoam = _UseShoreLineFoam > 0.5;
+
+    // Shoreline foam has no distortion input yet. Add it to this condition
+    // when the placeholder effect gains its distortion controls.
+    bool needsFoamDistortion =
+        (useSurfaceFoam && abs(_SurfaceFoam_Distortion) > 0.0)
+        || (useIntersectionFoam && abs(_IntersecFoam_Distortion) > 0.0);
+
+    float2 surfaceDistortion = 0.0;
+    UNITY_BRANCH if (needsFoamDistortion)
+    {
+        surfaceDistortion = SampleSurfaceDistortion(worldUV);
+    }
     
-    // Surface foam
-    float surfaceMask = SurfaceFoamMask(worldUV, surfaceDistortion);
-    
-    // intersection foam
-    float intersectionMask = IntersectionFoamMask(worldUV, surfaceDistortion, shallowFactor.y);
-    
-    // TODO:ShoreLine foam
-    
+
     half3 finalRGB = ApplyWaterNormalLighting(
         waterBaseColor.rgb,
         geometricNormalWS,
         waterNormalWS
     );
     half finalAlpha = waterBaseColor.a;
+    UNITY_BRANCH if (useIntersectionFoam)
+    {
+        float intersectionDriver = shallowFactor.y; // 星球模式下……
 
-    BlendFoam(
-        finalRGB,
-        finalAlpha,
-        _IntersecFoam_Color,
-        intersectionMask,
-        _UseIntersecFoam,
-        0.0h
-    );
+        float intersectionMask = IntersectionFoamMask(worldUV, surfaceDistortion, intersectionDriver);
+        BlendFoam(finalRGB, finalAlpha, _IntersecFoam_Color, intersectionMask, 1.0h, 0.0h);
+    }
+
+    UNITY_BRANCH if (useSurfaceFoam)
+    {
+        float surfaceMask = SurfaceFoamMask(worldUV, surfaceDistortion);
+        BlendFoam(finalRGB, finalAlpha, _SurfaceFoam_Color, surfaceMask, 1.0h, 0.0h);
+    }
+
+    // UNITY_BRANCH if (useShorelineFoam)
+    // {
+    // }
     
-    BlendFoam(
-        finalRGB,
-        finalAlpha,
-        _SurfaceFoam_Color,
-        surfaceMask,
-        _UseSurfaceFoam,
-        0.0h
-    );
     // return half4(waterNormalWS, 1.0);
     return half4(finalRGB, finalAlpha);
 }

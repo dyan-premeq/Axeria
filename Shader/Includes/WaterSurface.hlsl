@@ -136,7 +136,29 @@ float IntersectionFoamMask(float2 uvFoam, float2 surfaceDistortion, float shallo
 
 float ShoreLineFoamMask(float2 uvFoam, float shallowFactor)
 {
-    return 0;
+    // lines
+    float phase = (shallowFactor - _ShoreLine_Speed * _Time.y) * _ShoreLine_Amount;
+    float phaseReverse = frac(-phase);
+    float phaseForward = frac(phase);
+    
+    
+    
+    
+    // float 
+    
+    // direction control 
+    
+    // dissolve mask
+    
+    // roundness
+    
+    // near shore fade
+    
+    // trail fade
+    
+    // center mask
+    
+    
 }
 
 void BlendFoam(
