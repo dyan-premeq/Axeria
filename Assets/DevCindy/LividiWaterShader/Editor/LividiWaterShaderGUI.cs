@@ -104,7 +104,7 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
 
             DrawProperty(materialEditor, properties, drawnProperties, "_Color_Shallow", "浅水颜色");
             DrawProperty(materialEditor, properties, drawnProperties, "_Color_Deep", "深水颜色");
-            DrawProperty(materialEditor, properties, drawnProperties, "_Water_Depth", "水深范围");
+            DrawProperty(materialEditor, properties, drawnProperties, "_DepthFadeDistance", "水深渐变范围");
             DrawProperty(materialEditor, properties, drawnProperties, "_WorldSpaceDepth", "使用世界空间水深");
             DrawProperty(materialEditor, properties, drawnProperties, "_FoamFade", "泡沫淡出");
 
@@ -138,7 +138,7 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
         {
             MarkPropertyAsDrawn(properties, drawnProperties, "_Color_Shallow");
             MarkPropertyAsDrawn(properties, drawnProperties, "_Color_Deep");
-            MarkPropertyAsDrawn(properties, drawnProperties, "_Water_Depth");
+            MarkPropertyAsDrawn(properties, drawnProperties, "_DepthFadeDistance");
             MarkPropertyAsDrawn(properties, drawnProperties, "_WorldSpaceDepth");
             MarkPropertyAsDrawn(properties, drawnProperties, "_FoamFade");
             MarkPropertyAsDrawn(properties, drawnProperties, "_UsePlanetCenterUp");

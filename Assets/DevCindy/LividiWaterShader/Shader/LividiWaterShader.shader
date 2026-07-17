@@ -5,7 +5,7 @@ Shader "LividiWaterShader"
         // 基本设定
         [HDR]_Color_Shallow("浅水颜色", Color) = (0.2269659, 0.822786, 0.4507858, 0)
         [HDR]_Color_Deep("深水颜色", Color) = (0, 0.2541522, 0.4507858, 1)
-        _Water_Depth("Water_Depth", Float) = 0.5
+        _DepthFadeDistance("深度渐变距离", Float) = 0.5
         
         [ToggleUI]_WorldSpaceDepth("WorldSpaceDepth", Float) = 1
         [ToggleUI]_UsePlanetCenterUp("Use Planet Center Up", Float) = 1
@@ -60,6 +60,7 @@ Shader "LividiWaterShader"
         _IntersecFoam_Distortion("相交泡沫变形程度", Float) = 0
         // ShoreLineFoam
         [ToggleUI]_UseShoreLineFoam("Use shoreline foam", Float) = 1
+        _Shoreline_DepthFadeDistance("海岸线泡沫深度渐变距离", Float) = 0.8
 
     }
 

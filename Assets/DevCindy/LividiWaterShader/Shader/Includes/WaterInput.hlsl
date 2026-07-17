@@ -5,7 +5,7 @@ CBUFFER_START(UnityPerMaterial)
     half4   _Color_Shallow;
     half4   _Color_Deep;
 
-    float   _Water_Depth;
+    float   _DepthFadeDistance;
 
 //Normal and Distortion
 

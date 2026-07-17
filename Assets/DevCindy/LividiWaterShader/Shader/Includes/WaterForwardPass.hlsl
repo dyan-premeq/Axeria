@@ -31,7 +31,7 @@ half4 Frag(Varyings input) : SV_Target
     float2 worldUV = surfaceContext.planarMapping.uv;
     
     // Depth base color
-    half3 shallowFactor = (half3)GetWaterShallowFactor(input, _Water_Depth);
+    half3 shallowFactor = (half3)GetWaterShallowFactor(input, _DepthFadeDistance);
     half4 waterBaseColor = 0;
     HSVLerp_half(_Color_Deep, _Color_Shallow, shallowFactor.z, waterBaseColor);
 

@@ -74,7 +74,7 @@ float3 GetWaterShallowFactor(Varyings input, float depthFadeDistance)
 
 float3 GetWaterShallowFactor(Varyings input)
 {
-    return GetWaterShallowFactor(input, _Water_Depth);
+    return GetWaterShallowFactor(input, _DepthFadeDistance);
 }
 
 #endif
