@@ -18,6 +18,11 @@ Shader "LividiWaterShader"
         _WaterNormalSpeed("水面法线贴图 Panning Speed", Float) = 1
         _WaterNormalStrength("水面法线强度", Float) = 1
         
+          // Stylized Specular
+        [HDR]_WaterSpecularColor("高光颜色",Color) = (1,1,1,1)
+        _WaterSpecularSpread("高光扩散",Range(0,1)) = 0.5
+        _WaterSpecularSize("高光尺寸",Range(0,1)) = 0.2
+        _WaterSpecularHardness("高光硬度",Range(0,1)) = 0.7
         
         // Project-wide planet-space convention used by the atmosphere and cloud shaders.
         _PlanetCenter("Planet Center", Vector) = (0, 0, 0, 0)
@@ -84,6 +89,9 @@ Shader "LividiWaterShader"
             #pragma fragment Frag
             #pragma multi_compile_instancing
 
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
+            
             #include "Assets/DevCindy/LividiWaterShader/Shader/Includes/WaterForwardPass.hlsl"
 
             ENDHLSL

@@ -55,14 +55,17 @@ half4 Frag(Varyings input) : SV_Target
     {
         surfaceDistortion = SampleSurfaceDistortion(worldUV);
     }
+    float4 shadowCoord =TransformWorldToShadowCoord(surfaceContext.positionWS);
+    Light mainLight = GetMainLight(shadowCoord);
+    half3 finalRGB = waterBaseColor.rgb;
     
-
-    half3 finalRGB = ApplyWaterNormalLighting(
-        waterBaseColor.rgb,
-        geometricNormalWS,
-        waterNormalWS
-    );
     half finalAlpha = waterBaseColor.a;
+    
+    half3 viewDirWS = GetWorldSpaceNormalizeViewDir(surfaceContext.positionWS);
+    half3 waterSpecular = EvaluateMainWaterSpecular(mainLight.direction, waterNormalWS, viewDirWS, mainLight);
+    
+    finalRGB += waterSpecular;
+    
     UNITY_BRANCH if (useIntersectionFoam)
     {
         float intersectionDriver = shallowFactor.y; // 星球模式下……
@@ -82,6 +85,10 @@ half4 Frag(Varyings input) : SV_Target
     // }
     
     // return half4(waterNormalWS, 1.0);
+
+    finalRGB = ApplyWaterNormalLighting(finalRGB, geometricNormalWS, waterNormalWS, mainLight);
+    
+    
     return half4(finalRGB, finalAlpha);
 }
 

@@ -18,6 +18,12 @@ CBUFFER_START(UnityPerMaterial)
     float   _SurfaceDistortion_MaskScale;
     float4  _SurfaceDistortion_MaskPan;
 
+// Lighting
+    half4   _WaterSpecularColor;
+    float   _WaterSpecularSpread;
+    float   _WaterSpecularSize;
+    float   _WaterSpecularHardness;
+
 //Surface Foam
     float   _UseSurfaceFoam;
     half4   _SurfaceFoam_Color;

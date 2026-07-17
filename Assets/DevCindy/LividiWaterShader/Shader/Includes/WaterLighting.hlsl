@@ -3,11 +3,37 @@
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
-half3 LightingSpecluar(float3 L, float3 N, float3 V, float smoothness)
+float EvaluateWaterSpecularLobe(float3 L, float3 N, float3 V, float spread)
 {
-    float3 H = SafeNormalize(float3(L) + float3(V));
-    float NdotH = saturate(dot(N, H));
-    return pow(NdotH, smoothness);
+    L = SafeNormalize(L);
+    N = SafeNormalize(N);
+    V = SafeNormalize(V);
+    float3 H = SafeNormalize(L+V);
+    
+    float smoothness = exp2((1 - spread) * 10.0 + 1.0);
+    float lobe = pow(saturate(dot(N, H)), smoothness);
+    lobe *= step(0.0, dot(N, L));
+    
+    return lobe;
+}
+
+
+
+half3 EvaluateMainWaterSpecular(float3 L, float3 N, float3 V, Light mainLight)
+{
+    // float3 H = SafeNormalize(float3(L) + float3(V));
+    // float NdotH = saturate(dot(N, H));
+    // return pow(NdotH, smoothness);
+    
+    float3 specularMask = EvaluateWaterSpecularLobe(L, N, V, _WaterSpecularSpread);
+    float lowerEdge = 1 - _WaterSpecularSize;
+    float upperEdge = lowerEdge + 0.15;
+    float hardSpecular = smoothstep(lowerEdge, upperEdge, specularMask);
+    specularMask = lerp(specularMask, hardSpecular, _WaterSpecularHardness);
+    
+    float3 stylizedSpecular = _WaterSpecularColor.rgb * specularMask;
+    half attenuation = mainLight.distanceAttenuation * mainLight.shadowAttenuation;
+    return stylizedSpecular * mainLight.color * attenuation;
 }
 
 // The water color is currently stylized and unlit. Apply only the main-light
@@ -15,10 +41,10 @@ half3 LightingSpecluar(float3 L, float3 N, float3 V, float smoothness)
 half3 ApplyWaterNormalLighting(
     half3 baseColor,            
     half3 geometricNormalWS,    // 几何法线
-    half3 mappedNormalWS        // 法线贴图扰动后的微观法线
+    half3 mappedNormalWS,        // 法线贴图扰动后的微观法线
+    Light mainLight
 )
 {
-    Light mainLight = GetMainLight();
 
     half flatNdotL = saturate(dot(geometricNormalWS, mainLight.direction));
     half mappedNdotL = saturate(dot(mappedNormalWS, mainLight.direction));

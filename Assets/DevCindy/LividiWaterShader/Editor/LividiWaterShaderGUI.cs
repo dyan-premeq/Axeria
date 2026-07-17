@@ -27,6 +27,13 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
             "_WaterSurfaceNormal",
             "_WaterNormal"),
         new SectionDefinition(
+            "WaterSpecular",
+            "风格化高光",
+            true,
+            null,
+            null,
+            "_WaterSpecular"),
+        new SectionDefinition(
             "SurfaceDistortion",
             "表面扰动",
             true,
