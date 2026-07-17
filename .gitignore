@@ -105,3 +105,14 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# Lividi third-party and sample assets are local-only.
+/Assets/DevCindy/LividiWaterShader/Demo/
+/Assets/DevCindy/LividiWaterShader/Demo.meta
+/Assets/DevCindy/LividiWaterShader/Prefabs/
+/Assets/DevCindy/LividiWaterShader/Prefabs.meta
+/Assets/DevCindy/LividiWaterShader/Template Materials/
+/Assets/DevCindy/LividiWaterShader/Template Materials.meta
+/Assets/DevCindy/LividiWaterShader/Textures/
+/Assets/DevCindy/LividiWaterShader/Textures.meta
+/Assets/DevCindy/LividiWaterShader/*_StaticWaterIntersection_R*.asset*
