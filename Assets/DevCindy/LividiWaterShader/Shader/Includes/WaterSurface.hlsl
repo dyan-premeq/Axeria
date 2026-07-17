@@ -3,14 +3,14 @@
 
 #include "WaterSpace.hlsl"
 
-half3 SampleWaterNormalTS(float2 uv)
+half3 SampleWaterNormalTS(float2 uv, float scaling, float2 panningSpeed)
 {
     // UV0 keeps tangent-space sampling aligned with the mesh tangent basis.
     float2 normalUV = UVPanner(
         uv,
         _WaterNormalTiling.xy,
-        1.0,
-        float2(_WaterNormalSpeed, _WaterNormalSpeed)
+        scaling,
+        panningSpeed
     );
 
     half4 packedNormal = SAMPLE_TEXTURE2D(
@@ -39,14 +39,16 @@ float3 NormalBlend(float2 uv)
     float ratio = lerp(0.1, 1.0, saturate(_WaterNormalScalingRatio));
     float2 dirA = float2(0.7, 0.3);
     float2 dirB = float2(-0.2, 0.5);
-    float2 uvA = UVPanner(uv, _WaterNormalTiling.xy, 0.5 * _WaterNormalScaling, dirA * _WaterNormalSpeed);
-    float2 uvB = UVPanner(uv, _WaterNormalTiling.xy, _WaterNormalScaling / ratio, dirB * _WaterNormalSpeed);
+
+    float3 normalA = SampleWaterNormalTS(uv,0.5 * _WaterNormalScaling, dirA * _WaterNormalSpeed);
+    float3 normalB = SampleWaterNormalTS(uv,_WaterNormalScaling / ratio, dirB * _WaterNormalSpeed);
+    return BlendNormal(normalA, normalB);
     
-    float3 normalA = UnpackNormal(SAMPLE_TEXTURE2D(_WaterSurfaceNormalMap, sampler_WaterSurfaceNormalMap, uvA));
-    float3 normalB = UnpackNormal(SAMPLE_TEXTURE2D(_WaterSurfaceNormalMap, sampler_WaterSurfaceNormalMap, uvB));
-    
-    float3 normalTS = BlendNormal(normalA, normalB);
-    return ApplyNormalStrengthTS(normalTS,_WaterNormalStrength);
+    // float3 normalA = UnpackNormal(SAMPLE_TEXTURE2D(_WaterSurfaceNormalMap, sampler_WaterSurfaceNormalMap, uvA));
+    // float3 normalB = UnpackNormal(SAMPLE_TEXTURE2D(_WaterSurfaceNormalMap, sampler_WaterSurfaceNormalMap, uvB));
+    //
+    // float3 normalTS = BlendNormal(normalA, normalB);
+    // return ApplyNormalStrengthTS(normalTS,_WaterNormalStrength);
 }
 
 half3 SampleWaterNormalWS(WaterSurfaceContext context)

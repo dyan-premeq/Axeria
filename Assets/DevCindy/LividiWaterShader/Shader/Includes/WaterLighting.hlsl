@@ -13,9 +13,9 @@ half3 LightingSpecluar(float3 L, float3 N, float3 V, float smoothness)
 // The water color is currently stylized and unlit. Apply only the main-light
 // difference introduced by the normal map so a flat normal preserves it.
 half3 ApplyWaterNormalLighting(
-    half3 baseColor,
-    half3 geometricNormalWS,
-    half3 mappedNormalWS
+    half3 baseColor,            
+    half3 geometricNormalWS,    // 几何法线
+    half3 mappedNormalWS        // 法线贴图扰动后的微观法线
 )
 {
     Light mainLight = GetMainLight();

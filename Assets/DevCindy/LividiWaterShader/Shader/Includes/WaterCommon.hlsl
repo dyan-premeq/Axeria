@@ -59,9 +59,13 @@ void HSVLerp_half(half4 A, half4 B, half T, out half4 Out)
     Out = half4(rgb, alpha);
 }
 
+// planetUpWS           星球径向方向
+// waterReferenceUpWS   当前水体空间使用的参考竖直方向
+// geometricNormalWS    网格和顶点波浪产生的真实表面法线
+// mappedNormalWS       geometricNormalWS 再叠加法线贴图后的光照法线
 
-// 通过球体获取 up / worlduv ...
-float3 GetPlanetUpWS(float3 positionWS)
+// 获取世界位置相对于星球中心的径向 Up
+float3 GetPlanetRadialUpWS(float3 positionWS)
 {
     float3 radial = positionWS - _PlanetCenter.xyz;
     float radialLengthSq = dot(radial, radial);
@@ -70,7 +74,10 @@ float3 GetPlanetUpWS(float3 positionWS)
         : float3(0.0, 1.0, 0.0);
 }
 
-float3 GetWaterUpWS(float3 positionWS, float3 objectUpWS)
+// 获取当前水材质应该使用的参考 Up
+// - 普通平面水：使用水体对象自身的 Y 轴。
+// - 星球水：使用当前位置相对于星球中心的径向方向。
+float3 ResolveWaterReferenceUpWS(float3 positionWS, float3 objectUpWS)
 {
     float objectUpLengthSq = dot(objectUpWS, objectUpWS);
     float3 normalizedObjectUpWS = objectUpLengthSq > 1e-8
@@ -80,7 +87,7 @@ float3 GetWaterUpWS(float3 positionWS, float3 objectUpWS)
     float usePlanetCenterUp = step(0.5, _UsePlanetCenterUp);
     return lerp(
         normalizedObjectUpWS,
-        GetPlanetUpWS(positionWS),
+        GetPlanetRadialUpWS(positionWS),
         usePlanetCenterUp
     );
 }

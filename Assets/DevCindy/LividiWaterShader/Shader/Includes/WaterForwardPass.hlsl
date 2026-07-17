@@ -38,6 +38,7 @@ half4 Frag(Varyings input) : SV_Target
     // Mapping-specific normal sampling always resolves to world space here.
     half3 waterNormalWS = SampleWaterNormalWS(surfaceContext);
     
+    // return half4(waterNormalWS * .5 + .5, 1.0);
     
     bool useSurfaceFoam = _UseSurfaceFoam > 0.5;
     bool useIntersectionFoam = _UseIntersecFoam > 0.5;

@@ -97,12 +97,12 @@ struct Attributes
 struct Varyings
 {
     float4 positionCS : SV_POSITION;
-    float2 uv : TEXCOORD0;
+    float2 uv : TEXCOORD0;          // uv0
     float3 positionWS : TEXCOORD1;
     half3  normalWS : TEXCOORD2;
     half3  tangentWS : TEXCOORD3;
     half3  bitangentWS : TEXCOORD4;
-    float3 objectUpWS : TEXCOORD5;
+    float3 objectUpWS : TEXCOORD5;  // 水体对象自身局部 Y 轴转换到世界空间后的方向。
 };
 
 #endif

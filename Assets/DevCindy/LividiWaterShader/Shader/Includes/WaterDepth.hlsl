@@ -38,7 +38,7 @@ float3 GetWaterShallowFactor(
 
     // Project the surface-to-scene separation onto either the planet radial
     // direction or this water object's own local-up direction.
-    float3 waterUpWS = GetWaterUpWS(input.positionWS, input.objectUpWS);
+    float3 waterUpWS = ResolveWaterReferenceUpWS(input.positionWS, input.objectUpWS);
     
     float worldDepth = max(
         0.0,
