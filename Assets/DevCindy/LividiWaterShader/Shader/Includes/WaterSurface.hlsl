@@ -3,9 +3,10 @@
 
 #include "WaterSpace.hlsl"
 
-half3 SampleWaterNormalTS(float2 uv, float scaling, float2 panningSpeed)
+half3 SamplePlanarWaterNormalTS(float2 uv, float scaling, float2 panningSpeed)
 {
-    // UV0 keeps tangent-space sampling aligned with the mesh tangent basis.
+    // The returned tangent-space normal is relative to the planar mapping
+    // basis, not the mesh UV0 tangent basis.
     float2 normalUV = UVPanner(
         uv,
         _WaterNormalTiling.xy,
@@ -34,14 +35,14 @@ float3 ApplyNormalStrengthTS(float3 normalTS, float strength)
     return normalTS;
 }
 
-float3 NormalBlend(float2 uv)
+float3 SampleBlendedPlanarWaterNormalTS(float2 uv)
 {
     float ratio = lerp(0.1, 1.0, saturate(_WaterNormalScalingRatio));
     float2 dirA = float2(0.7, 0.3);
     float2 dirB = float2(-0.2, 0.5);
 
-    float3 normalA = SampleWaterNormalTS(uv,0.5 * _WaterNormalScaling, dirA * _WaterNormalSpeed);
-    float3 normalB = SampleWaterNormalTS(uv,_WaterNormalScaling / ratio, dirB * _WaterNormalSpeed);
+    float3 normalA = SamplePlanarWaterNormalTS(uv, 0.5 * _WaterNormalScaling, dirA * _WaterNormalSpeed);
+    float3 normalB = SamplePlanarWaterNormalTS(uv, _WaterNormalScaling / ratio, dirB * _WaterNormalSpeed);
     return BlendNormal(normalA, normalB);
     
     // float3 normalA = UnpackNormal(SAMPLE_TEXTURE2D(_WaterSurfaceNormalMap, sampler_WaterSurfaceNormalMap, uvA));
@@ -51,10 +52,17 @@ float3 NormalBlend(float2 uv)
     // return ApplyNormalStrengthTS(normalTS,_WaterNormalStrength);
 }
 
+half3 SamplePlanarWaterNormalWS(WaterPlanarMapping mapping)
+{
+    half3 normalTS = (half3)SampleBlendedPlanarWaterNormalTS(mapping.uv);
+    return ResolvePlanarWaterNormalWS(normalTS, mapping);
+}
+
 half3 SampleWaterNormalWS(WaterSurfaceContext context)
 {
-    half3 normalTS = (half3)NormalBlend(context.planarUV);
-    return ResolvePlanarWaterNormalWS(normalTS, context.planarBasis);
+    // Public normal-mapping boundary. A future planet path should dispatch
+    // here and return its own fully resolved world-space normal.
+    return SamplePlanarWaterNormalWS(context.planarMapping);
 }
 
 float2 SampleSurfaceDistortion(float2 worldUV)

@@ -28,7 +28,7 @@ half4 Frag(Varyings input) : SV_Target
 {
     WaterSurfaceContext surfaceContext = BuildWaterSurfaceContext(input);
     half3 geometricNormalWS = surfaceContext.geometricNormalWS;
-    float2 worldUV = surfaceContext.planarUV;
+    float2 worldUV = surfaceContext.planarMapping.uv;
     
     // Depth base color
     half3 shallowFactor = (half3)GetWaterShallowFactor(input, _Water_Depth);

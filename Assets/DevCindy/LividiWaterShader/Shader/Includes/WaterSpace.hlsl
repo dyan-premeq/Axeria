@@ -3,10 +3,15 @@
 
 #include "WaterCommon.hlsl"
 
-// Forward Pass 只需要一个 normalWS，它不关心是来自 uv0 / worldspace UV / Planet Triplanar
-
-// 一般模式： Worldspace UV， uv = worldpos.xz
-// 行星模式： （还没做，先不做，后面开始）
+// BuildWaterSurfaceContext() owns the mapping setup for the current water
+// space. Surface sampling consumes that context and exposes only normalWS to
+// lighting.
+//
+// Currently supported mapping:
+// - Planar: world-space XZ coordinates, preserving the existing material look.
+//
+// Planet mapping is intentionally deferred. When it is added, build its
+// mapping here and keep the forward-lighting interface unchanged.
 
 struct WaterSurfaceBasis
 {
@@ -14,6 +19,12 @@ struct WaterSurfaceBasis
     float3 bitangentWS; // +B
     float3 normalWS;
     float valid;
+};
+
+struct WaterPlanarMapping
+{
+    float2 uv;
+    WaterSurfaceBasis basis;
 };
 
 struct WaterSurfaceContext
@@ -32,9 +43,7 @@ struct WaterSurfaceContext
     // ResolveWaterReferenceUpWS() 计算
     half3 referenceUpWS;
 
-    // 当前像素采样纹理时用的 UV 坐标 (UV0, worldpos.xz, ...)
-    float2 planarUV; 
-    WaterSurfaceBasis planarBasis;
+    WaterPlanarMapping planarMapping;
 };
 
 
@@ -92,11 +101,30 @@ WaterSurfaceBasis BuildPlanarWaterBasis(
     return basis;
 }
 
-half3 ResolvePlanarWaterNormalWS(
-    half3 normalTS,
-    WaterSurfaceBasis basis
+WaterPlanarMapping BuildPlanarWaterMapping(
+    float3 positionWS,
+    float3 mappingPositionWS,
+    half3 geometricNormalWS
 )
 {
+    WaterPlanarMapping mapping = (WaterPlanarMapping)0;
+    mapping.uv = mappingPositionWS.xz * 0.1;
+    mapping.basis = BuildPlanarWaterBasis(
+        positionWS,
+        mapping.uv,
+        geometricNormalWS
+    );
+
+    return mapping;
+}
+
+half3 ResolvePlanarWaterNormalWS(
+    half3 normalTS,
+    WaterPlanarMapping mapping
+)
+{
+    WaterSurfaceBasis basis = mapping.basis;
+
     if (basis.valid < 0.5)
     {
         return (half3)basis.normalWS;
@@ -116,10 +144,9 @@ WaterSurfaceContext BuildWaterSurfaceContext(Varyings input)
     context.mappingPositionWS = input.positionWS;
     context.geometricNormalWS = (half3)SafeNormalize((float3)input.normalWS);
     context.referenceUpWS = (half3)ResolveWaterReferenceUpWS(input.positionWS, input.objectUpWS);
-    context.planarUV = context.mappingPositionWS.xz * 0.1;
-    context.planarBasis = BuildPlanarWaterBasis(
+    context.planarMapping = BuildPlanarWaterMapping(
         context.positionWS,
-        context.planarUV,
+        context.mappingPositionWS,
         context.geometricNormalWS
     );
 
