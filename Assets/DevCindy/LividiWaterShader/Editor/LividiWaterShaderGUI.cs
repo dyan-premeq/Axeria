@@ -14,6 +14,12 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
     private static readonly GUIContent UncategorizedHeader = new GUIContent("其他 / 未分类属性");
     private static readonly GUIContent AdvancedHeader = new GUIContent("高级设置");
 
+    private static readonly Dictionary<string, float> FloatMinimums =
+        new Dictionary<string, float>(StringComparer.Ordinal)
+        {
+            { "_GerstnerWavelength", 0.001f }
+        };
+
     // Adding a feature section should only require one entry here. Properties are
     // discovered in Shader declaration order through their naming prefixes.
     private static readonly SectionDefinition[] FeatureSections =
@@ -27,12 +33,26 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
             "_WaterSurfaceNormal",
             "_WaterNormal"),
         new SectionDefinition(
+            "GerstnerWave",
+            "Gerstner 波",
+            true,
+            "_EnableWave",
+            "启用 Gerstner 波",
+            "_Gerstner"),
+        new SectionDefinition(
             "WaterSpecular",
             "风格化高光",
             true,
             null,
             null,
             "_WaterSpecular"),
+        new SectionDefinition(
+            "Refraction",
+            "折射",
+            true,
+            "_UseRefraction",
+            "启用折射",
+            "_Refraction"),
         new SectionDefinition(
             "SurfaceDistortion",
             "表面扰动",
@@ -276,7 +296,27 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
             return;
         }
 
+        if (FloatMinimums.TryGetValue(property.name, out float minimum))
+        {
+            DrawFloatPropertyWithMinimum(materialEditor, property, minimum);
+            return;
+        }
+
         materialEditor.ShaderProperty(property, property.displayName);
+    }
+
+    private static void DrawFloatPropertyWithMinimum(
+        MaterialEditor materialEditor,
+        MaterialProperty property,
+        float minimum)
+    {
+        EditorGUI.BeginChangeCheck();
+        materialEditor.ShaderProperty(property, property.displayName);
+
+        if (EditorGUI.EndChangeCheck() && property.floatValue < minimum)
+        {
+            property.floatValue = minimum;
+        }
     }
 
     private static bool ShouldDrawAsVector2(MaterialProperty property)

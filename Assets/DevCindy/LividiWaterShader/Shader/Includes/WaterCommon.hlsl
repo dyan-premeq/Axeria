@@ -128,6 +128,17 @@ float4 Overlay(float4 Base, float4 Overlay, float Blend)
     return lerp(A, B, Blend);
 }
 
-
+// 通过摄像机距离生成 (0,1) 的距离遮罩
+// - `positionWS`   待计算遮罩值的世界坐标
+// - `basicDist`    在这个距离以内，遮罩值为 0
+// - `spread`       0 到 1 的平滑程度
+// - `Output.x`     远距离权重，近处为 0，远处为 1。
+// - `Output.y`     近距离权重，近处为 1，远处为 0。
+float2 CameraDistanceMask(float3 positionWS, float basicDist, float spread)
+{
+    float distToCamera = distance(GetCameraPositionWS(), positionWS);
+    float mask = saturate( (distToCamera - basicDist) / spread);
+    return float2(mask, 1 - mask);
+}
 
 #endif

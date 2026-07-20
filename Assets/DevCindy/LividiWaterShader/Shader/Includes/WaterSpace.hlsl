@@ -36,12 +36,12 @@ struct WaterSurfaceContext
     float3 mappingPositionWS;
 
     // 真实网格或顶点波浪产生的表面法线，最终法线应围绕它扰动
-    half3 geometricNormalWS;
+    float3 geometricNormalWS;
     
     // 当前水体空间使用的，稳定的水面竖直方向。
     // 行星模式下是径向方向，用来计算 Triplanar 权重、深度和岸线方向
     // ResolveWaterReferenceUpWS() 计算
-    half3 referenceUpWS;
+    float3 referenceUpWS;
 
     WaterPlanarMapping planarMapping;
 };
@@ -142,8 +142,8 @@ WaterSurfaceContext BuildWaterSurfaceContext(Varyings input)
     WaterSurfaceContext context = (WaterSurfaceContext)0;
     context.positionWS = input.positionWS;
     context.mappingPositionWS = input.positionWS;
-    context.geometricNormalWS = (half3)SafeNormalize((float3)input.normalWS);
-    context.referenceUpWS = (half3)ResolveWaterReferenceUpWS(input.positionWS, input.objectUpWS);
+    context.geometricNormalWS = SafeNormalize(input.normalWS);
+    context.referenceUpWS = ResolveWaterReferenceUpWS(input.positionWS, input.objectUpWS);
     context.planarMapping = BuildPlanarWaterMapping(
         context.positionWS,
         context.mappingPositionWS,

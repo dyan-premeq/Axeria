@@ -7,8 +7,8 @@ Shader "LividiWaterShader"
         [HDR]_Color_Deep("深水颜色", Color) = (0, 0.2541522, 0.4507858, 1)
         _DepthFadeDistance("深度渐变距离", Float) = 0.5
         
-        [ToggleUI]_WorldSpaceDepth("WorldSpaceDepth", Float) = 1
-        [ToggleUI]_UsePlanetCenterUp("Use Planet Center Up", Float) = 1
+        [ToggleUI]_WorldSpaceDepth("使用世界空间计算水深", Float) = 1
+        [ToggleUI]_UsePlanetCenterUp("Use Planet Center Up", Float) = 0
         _FoamFade("Foam Fade", Range(0.9,1.0)) = 0.95
         
         [Normal][NoScaleOffset]_WaterSurfaceNormalMap("水面法线贴图", 2D) = "bump" {}
@@ -18,11 +18,25 @@ Shader "LividiWaterShader"
         _WaterNormalSpeed("水面法线贴图 Panning Speed", Float) = 1
         _WaterNormalStrength("水面法线强度", Float) = 1
         
-          // Stylized Specular
+        // Gerstener Wave
+        [ToggleUI]_EnableWave("开启水波", Float) = 1
+        _GerstnerSteepness("Gersnter 波 Steepness", Range(0, 0.25)) = 1
+        _GerstnerWavelength("Gerstner 波长", Float) = 1
+        _GerstnerSpeed("Gerstner 波相速度", Float) = 1
+        _GerstnerDirection("Gerstner 波方向（一个分量控制一个波向）", Vector) = (0.1, 0.3, 0.4, 1)
+        
+        // Stylized Specular
         [HDR]_WaterSpecularColor("高光颜色",Color) = (1,1,1,1)
         _WaterSpecularSpread("高光扩散",Range(0,1)) = 0.5
         _WaterSpecularSize("高光尺寸",Range(0,1)) = 0.2
         _WaterSpecularHardness("高光硬度",Range(0,1)) = 0.7
+        
+        // Refraction
+        [ToggleUI]_UseRefraction("开启折射", Float) = 1
+        _RefractionDepthBias("折射深度阈值", Float) = 0.0001 
+        _RefractionFadeDistance("折射消失距离", Float) = 0.3
+        _RefractionStrength_Base("基础折射强度", Float) = 0.008
+        _RefractionStrength_Far("远处折射强度", Float) = 0.002
         
         // Project-wide planet-space convention used by the atmosphere and cloud shaders.
         _PlanetCenter("Planet Center", Vector) = (0, 0, 0, 0)
@@ -81,6 +95,7 @@ Shader "LividiWaterShader"
             ZWrite Off
             ZTest LEqual
             Cull Back
+//            Blend Off
             Blend SrcAlpha OneMinusSrcAlpha, One OneMinusSrcAlpha
 
             HLSLPROGRAM
@@ -92,6 +107,8 @@ Shader "LividiWaterShader"
 
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
+            
+            #define _SURFACE_TYPE_TRANSPARENT 1
             
             #include "Assets/DevCindy/LividiWaterShader/Shader/Includes/WaterForwardPass.hlsl"
 

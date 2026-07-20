@@ -3,7 +3,55 @@
 
 #include "WaterSpace.hlsl"
 
-half3 SamplePlanarWaterNormalTS(float2 uv, float scaling, float2 panningSpeed)
+float3 GerstnerWave(float3 position, float steepness, float wavelength, float speed, float direction, inout float3 tangent, inout float3 binormal)
+{
+    direction = direction * 2 - 1;
+    float2 waveDir = float2(cos(PI * direction), sin(PI * direction));
+    wavelength = max(wavelength, 0.001);
+    float k = 2 * PI / wavelength;
+    // float g = 9.8;
+    // Stylized 相速度交给 artist 吧。
+    // float c = sqrt(g * wavelength / (2 * PI));
+
+    
+    float A = steepness / k;
+    float f = k * (dot(waveDir.xy, position.xz) - speed * _Time.y );
+    float sinf = sin(f);
+    float cosf = cos(f);
+    tangent += float3(
+        -waveDir.x * waveDir.x * (steepness * sinf),
+        waveDir.x * (steepness * cosf),
+        -waveDir.x * waveDir.y * (steepness * sinf)
+    );
+    binormal += float3(
+        -waveDir.x * waveDir.y * (steepness * sinf),
+        waveDir.y * (steepness * cosf),
+        -waveDir.y * waveDir.y * (steepness * sinf)
+    );
+    return float3(
+        waveDir.x * A * cosf,
+        A * sinf,
+        waveDir.y * A * cosf
+    );
+}
+
+
+void GerstnerWaves_float(float3 position, float steepness, float wavelength, float speed, float4 directions, out float3 Offset, out float3 normal)
+{
+    Offset = 0;
+    float3 tangent = float3(1, 0, 0);
+    float3 binormal = float3(0, 0, 1);
+
+    Offset += GerstnerWave(position, steepness, wavelength, speed, directions.x, tangent, binormal);
+    Offset += GerstnerWave(position, steepness, wavelength, speed, directions.y, tangent, binormal);
+    Offset += GerstnerWave(position, steepness, wavelength, speed, directions.z, tangent, binormal);
+    Offset += GerstnerWave(position, steepness, wavelength, speed, directions.w, tangent, binormal);
+
+    normal = normalize(cross(binormal, tangent));
+    //TBN = transpose(float3x3(tangent, binormal, normal));
+}
+
+float3 SamplePlanarWaterNormalTS(float2 uv, float scaling, float2 panningSpeed)
 {
     // The returned tangent-space normal is relative to the planar mapping
     // basis, not the mesh UV0 tangent basis.
@@ -20,7 +68,7 @@ half3 SamplePlanarWaterNormalTS(float2 uv, float scaling, float2 panningSpeed)
         normalUV
     );
 
-    return UnpackNormalScale(packedNormal, _WaterNormalStrength);
+    return UnpackNormal(packedNormal);
 }
 
 float3 ApplyNormalStrengthTS(float3 normalTS, float strength)
@@ -28,21 +76,20 @@ float3 ApplyNormalStrengthTS(float3 normalTS, float strength)
     normalTS = normalize(normalTS);
 
     normalTS.xy *= strength;
-    normalTS.z = sqrt(saturate(
-        1.0 - dot(normalTS.xy, normalTS.xy)
-    ));
+    normalTS.z = lerp(1.0, normalTS.z, strength);
 
-    return normalTS;
+    return SafeNormalize(normalTS);
 }
 
 float3 SampleBlendedPlanarWaterNormalTS(float2 uv)
 {
     float ratio = lerp(0.1, 1.0, saturate(_WaterNormalScalingRatio));
-    float2 dirA = float2(0.7, 0.3);
-    float2 dirB = float2(-0.2, 0.5);
+    float angleA = PI / 6.;
+    float2 dirA = float2(cos(angleA), sin(angleA));
+    float2 dirB = float2(cos(angleA*4.), sin(angleA*4.));
 
-    float3 normalA = SamplePlanarWaterNormalTS(uv, 0.5 * _WaterNormalScaling, dirA * _WaterNormalSpeed);
-    float3 normalB = SamplePlanarWaterNormalTS(uv, _WaterNormalScaling / ratio, dirB * _WaterNormalSpeed);
+    float3 normalA = SamplePlanarWaterNormalTS(uv, ratio * _WaterNormalScaling, dirA * ratio * _WaterNormalSpeed);
+    float3 normalB = SamplePlanarWaterNormalTS(uv, _WaterNormalScaling, dirB * _WaterNormalSpeed);
     return BlendNormal(normalA, normalB);
     
     // float3 normalA = UnpackNormal(SAMPLE_TEXTURE2D(_WaterSurfaceNormalMap, sampler_WaterSurfaceNormalMap, uvA));
@@ -52,13 +99,43 @@ float3 SampleBlendedPlanarWaterNormalTS(float2 uv)
     // return ApplyNormalStrengthTS(normalTS,_WaterNormalStrength);
 }
 
-half3 SamplePlanarWaterNormalWS(WaterPlanarMapping mapping)
+struct WaterNormalSample
 {
-    half3 normalTS = (half3)SampleBlendedPlanarWaterNormalTS(mapping.uv);
+    float3 normalWS;
+    float3 normalWS_Unscaled;
+};
+
+// float3 ApplyNormalStrengthTS(float3 normalTS, float strength)
+// {
+//     normalTS.xy *= max(strength, 0.0);
+//     return normalTS;
+// }
+
+WaterNormalSample GetSamplePlanarWaterNormalWS(WaterPlanarMapping mapping)
+{
+    WaterNormalSample res = (WaterNormalSample)0;
+    float3 unscaledNormalTS = SampleBlendedPlanarWaterNormalTS(mapping.uv);
+    float3 scaledNormalTS = ApplyNormalStrengthTS(unscaledNormalTS, _WaterNormalStrength);
+    
+    res.normalWS = ResolvePlanarWaterNormalWS(scaledNormalTS, mapping);
+    res.normalWS_Unscaled = ResolvePlanarWaterNormalWS(unscaledNormalTS, mapping);
+    return res;
+}
+
+float3 SamplePlanarWaterNormalWS(WaterPlanarMapping mapping)
+{
+    float3 normalTS = SampleBlendedPlanarWaterNormalTS(mapping.uv);
     return ResolvePlanarWaterNormalWS(normalTS, mapping);
 }
 
-half3 SampleWaterNormalWS(WaterSurfaceContext context)
+WaterNormalSample GetSampleWaterNormalWS(WaterSurfaceContext context)
+{
+    // Public normal-mapping boundary. A future planet path should dispatch
+    // here and return its own fully resolved world-space normal.
+    return GetSamplePlanarWaterNormalWS(context.planarMapping);
+}
+
+float3 SampleWaterNormalWS(WaterSurfaceContext context)
 {
     // Public normal-mapping boundary. A future planet path should dispatch
     // here and return its own fully resolved world-space normal.
@@ -133,6 +210,7 @@ float IntersectionFoamMask(float2 uvFoam, float2 surfaceDistortion, float shallo
     float edge = 1.0 - _IntersecFoam_Width * widthScale;
     half intersectionDissolveMask = SmoothMask(edge, dissolveGradient, shallowFactor);
     half intersectionDepthMask = SmoothMask(edge, 1.0, shallowFactor);
+    
     float combined = intersectionDissolveMask * (intersectionDissolveMask + noiseGate);
     float finalFoamMask = SmoothMask(0.1, _IntersecFoam_Smoothness, combined);
     finalFoamMask = saturate(lerp(

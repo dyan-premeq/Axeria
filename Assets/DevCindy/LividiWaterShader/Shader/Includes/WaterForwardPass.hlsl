@@ -5,47 +5,72 @@
 #include "WaterDepth.hlsl"
 #include "WaterSurface.hlsl"
 #include "WaterLighting.hlsl"
+#include "WaterRefraction.hlsl"
 
 Varyings Vert(Attributes input)
 {
     Varyings output = (Varyings)0;
     UNITY_SETUP_INSTANCE_ID(input);
+    
+    float3 basePositionWS = TransformObjectToWorld(input.positionOS.xyz);
+    
+    float3 finalPositionWS = basePositionWS;
+    float3 finalNormalWS = TransformObjectToWorldNormal(input.normalOS);
+    
+    UNITY_BRANCH if (_EnableWave > 0.5)
+    {
+        float3 waveOffsetWS;
+        float3 waveNormalWS;
 
-    VertexPositionInputs positionInputs = GetVertexPositionInputs(input.positionOS.xyz);
-    VertexNormalInputs normalInputs = GetVertexNormalInputs(input.normalOS, input.tangentOS);
+        GerstnerWaves_float(
+            basePositionWS,
+            _GerstnerSteepness,
+            _GerstnerWavelength,
+            _GerstnerSpeed,
+            _GerstnerDirection,
+            waveOffsetWS,
+            waveNormalWS
+        );
 
-    output.positionCS = positionInputs.positionCS;
-    output.positionWS = positionInputs.positionWS;
-    output.uv = input.uv;
-    output.normalWS = normalInputs.normalWS;
-    output.tangentWS = normalInputs.tangentWS;
-    output.bitangentWS = normalInputs.bitangentWS;
+        finalPositionWS += waveOffsetWS;
+        finalNormalWS = waveNormalWS;
+    }
+    
     output.objectUpWS = TransformObjectToWorldNormal(float3(0.0, 1.0, 0.0));
+    output.normalWS = finalNormalWS;
+    output.positionWS = finalPositionWS;
+    output.positionCS = TransformWorldToHClip(output.positionWS);
+    output.uv = input.uv;
+    
     return output;
 }
 
 half4 Frag(Varyings input) : SV_Target
 {
     WaterSurfaceContext surfaceContext = BuildWaterSurfaceContext(input);
-    half3 geometricNormalWS = surfaceContext.geometricNormalWS;
+
+    float3 geometricNormalWS = surfaceContext.geometricNormalWS;
     float2 worldUV = surfaceContext.planarMapping.uv;
+    float2 screenUV = GetNormalizedScreenSpaceUV(input.positionCS);
     
     // Depth base color
-    half3 shallowFactor = (half3)GetWaterShallowFactor(input, _DepthFadeDistance);
+    WaterDepthSample geometryDepth = SampleWaterDepth(input, surfaceContext.referenceUpWS);
     half4 waterBaseColor = 0;
-    HSVLerp_half(_Color_Deep, _Color_Shallow, shallowFactor.z, waterBaseColor);
-
+    HSVLerp_half(_Color_Deep, _Color_Shallow, geometryDepth.shallowFactor.z, waterBaseColor);
+        
     // Mapping-specific normal sampling always resolves to world space here.
-    half3 waterNormalWS = SampleWaterNormalWS(surfaceContext);
+    // float3 waterNormalWS = SampleWaterNormalWS(surfaceContext); // mapped normal
+    WaterNormalSample waterNormalSampleWS = GetSampleWaterNormalWS(surfaceContext);
     
-    // return half4(waterNormalWS * .5 + .5, 1.0);
+    
+    // return half4(screenUV + GetRefractedOffset(waterNormalWS, geometricNormalWS), 0.0, 1.0);
+    // return half4(waterNormalSampleWS.normalWS * .5 + .5, 1.0);
     
     bool useSurfaceFoam = _UseSurfaceFoam > 0.5;
     bool useIntersectionFoam = _UseIntersecFoam > 0.5;
     bool useShorelineFoam = _UseShoreLineFoam > 0.5;
-
-    // Shoreline foam has no distortion input yet. Add it to this condition
-    // when the placeholder effect gains its distortion controls.
+    bool useRefraction = _UseRefraction > 0.5;
+    
     bool needsFoamDistortion =
         (useSurfaceFoam && abs(_SurfaceFoam_Distortion) > 0.0)
         || (useIntersectionFoam && abs(_IntersecFoam_Distortion) > 0.0);
@@ -58,17 +83,34 @@ half4 Frag(Varyings input) : SV_Target
     float4 shadowCoord =TransformWorldToShadowCoord(surfaceContext.positionWS);
     Light mainLight = GetMainLight(shadowCoord);
     half3 finalRGB = waterBaseColor.rgb;
-    
     half finalAlpha = waterBaseColor.a;
     
+    finalRGB = ApplyWaterNormalLighting(waterBaseColor.rgb, geometricNormalWS ,waterNormalSampleWS.normalWS, mainLight);
+    
+    UNITY_BRANCH if (useRefraction)
+    {
+        WaterRefractionSample refractionSample = ResolveRefractionUV(screenUV, waterNormalSampleWS.normalWS_Unscaled, surfaceContext, geometryDepth);
+        WaterDepthSample opticalDepth = refractionSample.depthSample;
+
+        half4 opticalWaterRGB = 0;
+        HSVLerp_half(_Color_Deep, _Color_Shallow, opticalDepth.shallowFactor.z, opticalWaterRGB);
+        half3 litWaterRGB = ApplyWaterNormalLighting(opticalWaterRGB.rgb, geometricNormalWS ,waterNormalSampleWS.normalWS, mainLight);
+        finalRGB = lerp(refractionSample.sceneColor, litWaterRGB.rgb, opticalWaterRGB.a);
+        // half3 original = SampleSceneColor(screenUV);
+        // half3 difference =
+        //     abs(refractionSample.sceneColor - original) * 20.0h;
+        //
+        // return half4(difference, 1.0h);
+    }
+    
     half3 viewDirWS = GetWorldSpaceNormalizeViewDir(surfaceContext.positionWS);
-    half3 waterSpecular = EvaluateMainWaterSpecular(mainLight.direction, waterNormalWS, viewDirWS, mainLight);
+    half3 waterSpecular = EvaluateMainWaterSpecular(mainLight.direction, waterNormalSampleWS.normalWS, viewDirWS, mainLight);
     
     finalRGB += waterSpecular;
     
     UNITY_BRANCH if (useIntersectionFoam)
     {
-        float intersectionDriver = shallowFactor.y; // 星球模式下……
+        float intersectionDriver = geometryDepth.shallowFactor.y; // 星球模式下……
 
         float intersectionMask = IntersectionFoamMask(worldUV, surfaceDistortion, intersectionDriver);
         BlendFoam(finalRGB, finalAlpha, _IntersecFoam_Color, intersectionMask, 1.0h, 0.0h);
@@ -86,8 +128,9 @@ half4 Frag(Varyings input) : SV_Target
     
     // return half4(waterNormalWS, 1.0);
 
-    finalRGB = ApplyWaterNormalLighting(finalRGB, geometricNormalWS, waterNormalWS, mainLight);
+    // finalRGB = ApplyWaterNormalLighting(finalRGB, geometricNormalWS, waterNormalWS, mainLight);
     
+    finalAlpha = useRefraction ? 1.0 : finalAlpha;
     
     return half4(finalRGB, finalAlpha);
 }
