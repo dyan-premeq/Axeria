@@ -141,4 +141,6 @@ float2 CameraDistanceMask(float3 positionWS, float basicDist, float spread)
     return float2(mask, 1 - mask);
 }
 
+
+
 #endif

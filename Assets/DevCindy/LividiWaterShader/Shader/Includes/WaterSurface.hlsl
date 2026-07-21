@@ -211,14 +211,28 @@ float IntersectionFoamMask(float2 uvFoam, float2 surfaceDistortion, float shallo
     half intersectionDissolveMask = SmoothMask(edge, dissolveGradient, shallowFactor);
     half intersectionDepthMask = SmoothMask(edge, 1.0, shallowFactor);
     
+    float sharpness = 8;
+    float t = saturate(
+        (1.0 - shallowFactor)
+        / max(1.0 - edge, 0.0001)
+        );  
+    float cosineFade = cos(t * HALF_PI);
+    float edgeFade = pow(
+        max(cosineFade, 0.0),
+        rcp(max(sharpness, 0.0001))
+    );
+    
     float combined = intersectionDissolveMask * (intersectionDissolveMask + noiseGate);
     float finalFoamMask = SmoothMask(0.1, _IntersecFoam_Smoothness, combined);
-    finalFoamMask = saturate(lerp(
-        finalFoamMask,
-        finalFoamMask * intersectionDepthMask,
-        _IntersecFoam_EdgeFading
-    ));
+    // finalFoamMask = saturate(lerp(
+    //     finalFoamMask,
+    //     finalFoamMask * intersectionDepthMask,
+    //     _IntersecFoam_EdgeFading
+    // ));
 
+    // float fade = pow(cos(intersectionDepthMask * PI / 2),(1 / sharpness));
+    finalFoamMask *= lerp(1, edgeFade, _IntersecFoam_EdgeFading);
+    
     return finalFoamMask;
 }
 
@@ -228,9 +242,6 @@ float ShoreLineFoamMask(float2 uvFoam, float shallowFactor)
     float phase = (shallowFactor - _ShoreLine_Speed * _Time.y) * _ShoreLine_Amount;
     float phaseReverse = frac(-phase);
     float phaseForward = frac(phase);
-    
-    
-    
     
     // float 
     

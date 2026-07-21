@@ -20,10 +20,32 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
             { "_GerstnerWavelength", 0.001f }
         };
 
+    private static readonly HashSet<string> Vector2PropertyNames =
+        new HashSet<string>(StringComparer.Ordinal)
+        {
+            "_WaterNormalTiling",
+            "_SurfaceDistortion_MaskPan",
+            "_CausticsSpeedA",
+            "_CausticsSpeedB",
+            "_SurfaceFoam_MaskTiling",
+            "_SurfaceFoam_MaskPan",
+            "_IntersecFoam_MaskTiling",
+            "_IntersecFoam_MaskPan",
+            "_ShoreLine_MaskSpeed",
+            "_ShoreLine_MaskTile"
+        };
+
     // Adding a feature section should only require one entry here. Properties are
     // discovered in Shader declaration order through their naming prefixes.
     private static readonly SectionDefinition[] FeatureSections =
     {
+        new SectionDefinition(
+            "ShoreFade",
+            "水岸渐变",
+            true,
+            "_UseShoreFade",
+            "启用水岸渐变",
+            "_ShoreFade"),
         new SectionDefinition(
             "SurfaceNormal",
             "水面法线",
@@ -54,6 +76,16 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
             "启用折射",
             "_Refraction"),
         new SectionDefinition(
+            "Caustics",
+            "焦散",
+            false,
+            "_EnableCaustics",
+            "启用焦散",
+            "_Caustic")
+            .Requires(
+                "_UseRefraction",
+                "焦散依赖折射；请先为所有选中的材质启用折射。"),
+        new SectionDefinition(
             "SurfaceDistortion",
             "表面扰动",
             true,
@@ -66,28 +98,21 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
             false,
             "_UseSurfaceFoam",
             "启用表面白沫",
-            "_SurfaceFoam",
-            "_SurfFoam",
-            "_Enable_SurfaceFoam"),
+            "_SurfaceFoam"),
         new SectionDefinition(
             "IntersectionFoam",
             "相交白沫",
             true,
             "_UseIntersecFoam",
             "启用相交白沫",
-            "_Intersec",
-            "_InterSec",
-            "_Enable_Intersection"),
+            "_IntersecFoam"),
         new SectionDefinition(
             "ShorelineFoam",
             "海岸白沫",
             false,
             "_UseShoreLineFoam",
             "启用海岸白沫",
-            "_Shore",
-            "_SL_",
-            "_ENABLESHORELINE",
-            "_UseShorelineFoam")
+            "_ShoreLine")
     };
 
     public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties)
@@ -183,46 +208,61 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
         MaterialProperty toggle = string.IsNullOrEmpty(section.TogglePropertyName)
             ? null
             : FindProperty(section.TogglePropertyName, properties, false);
+        MaterialProperty dependency = string.IsNullOrEmpty(section.RequiredTogglePropertyName)
+            ? null
+            : FindProperty(section.RequiredTogglePropertyName, properties, false);
+        bool dependencySatisfied = string.IsNullOrEmpty(section.RequiredTogglePropertyName)
+            || (dependency != null
+                && !dependency.hasMixedValue
+                && dependency.floatValue > 0.5f);
 
         if (expanded)
         {
             EditorGUI.indentLevel++;
 
-            if (toggle != null)
+            if (!dependencySatisfied && !string.IsNullOrEmpty(section.DependencyMessage))
             {
-                materialEditor.ShaderProperty(toggle, new GUIContent(section.ToggleLabel));
-                drawnProperties.Add(toggle.name);
+                EditorGUILayout.HelpBox(section.DependencyMessage, MessageType.Info);
             }
 
-            bool showSettings = toggle == null
-                || toggle.hasMixedValue
-                || toggle.floatValue > 0.5f;
-            bool indentSettings = showSettings && toggle != null;
-
-            if (indentSettings)
+            using (new EditorGUI.DisabledScope(!dependencySatisfied))
             {
-                EditorGUI.indentLevel++;
-            }
-
-            foreach (MaterialProperty property in properties)
-            {
-                if (!section.Matches(property.name))
+                if (toggle != null)
                 {
-                    continue;
+                    materialEditor.ShaderProperty(toggle, new GUIContent(section.ToggleLabel));
+                    drawnProperties.Add(toggle.name);
                 }
 
-                drawnProperties.Add(property.name);
-                if (property == toggle || !showSettings)
+                bool showSettings = toggle == null
+                    || toggle.hasMixedValue
+                    || toggle.floatValue > 0.5f;
+                bool indentSettings = showSettings && toggle != null;
+
+                if (indentSettings)
                 {
-                    continue;
+                    EditorGUI.indentLevel++;
                 }
 
-                DrawAutomaticProperty(materialEditor, property);
-            }
+                foreach (MaterialProperty property in properties)
+                {
+                    if (!section.Matches(property.name))
+                    {
+                        continue;
+                    }
 
-            if (indentSettings)
-            {
-                EditorGUI.indentLevel--;
+                    drawnProperties.Add(property.name);
+                    if (property == toggle || !showSettings)
+                    {
+                        continue;
+                    }
+
+                    DrawAutomaticProperty(materialEditor, property);
+                }
+
+                if (indentSettings)
+                {
+                    EditorGUI.indentLevel--;
+                }
             }
 
             EditorGUI.indentLevel--;
@@ -321,13 +361,8 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
 
     private static bool ShouldDrawAsVector2(MaterialProperty property)
     {
-        if (property.type != MaterialProperty.PropType.Vector)
-        {
-            return false;
-        }
-
-        return property.name.EndsWith("Pan", StringComparison.Ordinal)
-            || property.name.EndsWith("Tiling", StringComparison.Ordinal);
+        return property.type == MaterialProperty.PropType.Vector
+            && Vector2PropertyNames.Contains(property.name);
     }
 
     private MaterialProperty DrawProperty(
@@ -471,6 +506,15 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
         public bool DefaultExpanded { get; }
         public string TogglePropertyName { get; }
         public string ToggleLabel { get; }
+        public string RequiredTogglePropertyName { get; private set; }
+        public string DependencyMessage { get; private set; }
+
+        public SectionDefinition Requires(string togglePropertyName, string message)
+        {
+            RequiredTogglePropertyName = togglePropertyName;
+            DependencyMessage = message;
+            return this;
+        }
 
         public bool Matches(string propertyName)
         {

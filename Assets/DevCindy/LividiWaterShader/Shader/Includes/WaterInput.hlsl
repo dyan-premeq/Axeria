@@ -7,7 +7,11 @@ CBUFFER_START(UnityPerMaterial)
 
     float   _DepthFadeDistance;
 
-//Normal and Distortion
+// Shore Fade
+    float   _UseShoreFade;
+    float   _ShoreFadeSmoothness;
+
+// Normal and Distortion
 
     float   _WaterNormalScaling;
     float   _WaterNormalScalingRatio;
@@ -31,10 +35,19 @@ CBUFFER_START(UnityPerMaterial)
     float   _GerstnerSpeed;
     float4  _GerstnerDirection;
 
+// Caustics
+    float   _EnableCaustics;
+    float4   _CausticsSpeedA;
+    float4   _CausticsSpeedB;
+    float   _CausticSharpness;
+    float   _CausticsStart;
+    float   _CausticsFadingSmoothness;
+
 // Refraction
     float   _UseRefraction;
     float   _RefractionDepthBias;
     float   _RefractionFadeDistance;
+    float   _RefractionFadeRange;
     float   _RefractionStrength_Base;
     float   _RefractionStrength_Far;
 
@@ -104,6 +117,9 @@ SAMPLER(sampler_SurfaceDistortion_Map);
 
 TEXTURE2D(_ShoreLine_DissolveMask);
 SAMPLER(sampler_ShoreLine_DissolveMask);
+
+TEXTURE2D(_CausticMap);
+SAMPLER(sampler_CausticMap);
 
 struct Attributes
 {

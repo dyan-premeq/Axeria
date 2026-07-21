@@ -101,4 +101,21 @@ WaterDepthSample SampleWaterDepth(Varyings input, float3 waterUpWS)
     return SampleWaterDepth(input, waterUpWS, _DepthFadeDistance);
 }
 
+float ComputeShoreFade(
+     WaterDepthSample geometryDepth,
+     float enabled,
+     float smoothness
+ )
+{
+    float awayFromShore = max(0.0, geometryDepth.signedWaterDepth);
+    // awayFromShore = saturate(1.0 - geometryDepth.shallowFactor.y);
+
+    float fade = smoothstep(0.0, max(smoothness, 0.0001), awayFromShore);
+
+    // 深度纹理无效时保持水面可见
+    float applyFade = saturate(enabled) * geometryDepth.valid;
+    return lerp(1.0, fade, applyFade);
+}
+
+
 #endif

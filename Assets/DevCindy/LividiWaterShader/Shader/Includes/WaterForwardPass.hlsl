@@ -55,13 +55,15 @@ half4 Frag(Varyings input) : SV_Target
     
     // Depth base color
     WaterDepthSample geometryDepth = SampleWaterDepth(input, surfaceContext.referenceUpWS);
+    
+    float shoreFade = ComputeShoreFade(geometryDepth, _UseShoreFade, _ShoreFadeSmoothness);
+    
     half4 waterBaseColor = 0;
     HSVLerp_half(_Color_Deep, _Color_Shallow, geometryDepth.shallowFactor.z, waterBaseColor);
         
     // Mapping-specific normal sampling always resolves to world space here.
     // float3 waterNormalWS = SampleWaterNormalWS(surfaceContext); // mapped normal
     WaterNormalSample waterNormalSampleWS = GetSampleWaterNormalWS(surfaceContext);
-    
     
     // return half4(screenUV + GetRefractedOffset(waterNormalWS, geometricNormalWS), 0.0, 1.0);
     // return half4(waterNormalSampleWS.normalWS * .5 + .5, 1.0);
@@ -70,6 +72,7 @@ half4 Frag(Varyings input) : SV_Target
     bool useIntersectionFoam = _UseIntersecFoam > 0.5;
     bool useShorelineFoam = _UseShoreLineFoam > 0.5;
     bool useRefraction = _UseRefraction > 0.5;
+    bool useCaustics = _EnableCaustics > 0.5;
     
     bool needsFoamDistortion =
         (useSurfaceFoam && abs(_SurfaceFoam_Distortion) > 0.0)
@@ -82,20 +85,34 @@ half4 Frag(Varyings input) : SV_Target
     }
     float4 shadowCoord =TransformWorldToShadowCoord(surfaceContext.positionWS);
     Light mainLight = GetMainLight(shadowCoord);
+    
     half3 finalRGB = waterBaseColor.rgb;
+    
     half finalAlpha = waterBaseColor.a;
     
     finalRGB = ApplyWaterNormalLighting(waterBaseColor.rgb, geometricNormalWS ,waterNormalSampleWS.normalWS, mainLight);
     
     UNITY_BRANCH if (useRefraction)
     {
-        WaterRefractionSample refractionSample = ResolveRefractionUV(screenUV, waterNormalSampleWS.normalWS_Unscaled, surfaceContext, geometryDepth);
+        WaterRefractionSample refractionSample = ResolveRefractionUV(screenUV, waterNormalSampleWS.normalWS_Unscaled, surfaceContext, geometryDepth, shoreFade);
         WaterDepthSample opticalDepth = refractionSample.depthSample;
 
+        half3 opticalSceneRGB = refractionSample.sceneColor;
+        
+        UNITY_BRANCH if (useCaustics)
+        {
+            // 如果不用 opticalDepth，而是 geometryDepth？
+            // 焦散本身也是从水底反射过来最终被看到的，所以也需要经过折射。如果用 geometry depth
+            // 就会看到你折射你的，我的焦散好像浮在上面一样，不真实
+            half3 causticMask = EvaluateWaterCaustics(opticalDepth, surfaceContext.positionWS);
+            opticalSceneRGB += causticMask;
+        }
+        
         half4 opticalWaterRGB = 0;
         HSVLerp_half(_Color_Deep, _Color_Shallow, opticalDepth.shallowFactor.z, opticalWaterRGB);
         half3 litWaterRGB = ApplyWaterNormalLighting(opticalWaterRGB.rgb, geometricNormalWS ,waterNormalSampleWS.normalWS, mainLight);
-        finalRGB = lerp(refractionSample.sceneColor, litWaterRGB.rgb, opticalWaterRGB.a);
+        finalRGB = lerp(opticalSceneRGB, litWaterRGB.rgb, opticalWaterRGB.a);
+        
         // half3 original = SampleSceneColor(screenUV);
         // half3 difference =
         //     abs(refractionSample.sceneColor - original) * 20.0h;
@@ -130,7 +147,7 @@ half4 Frag(Varyings input) : SV_Target
 
     // finalRGB = ApplyWaterNormalLighting(finalRGB, geometricNormalWS, waterNormalWS, mainLight);
     
-    finalAlpha = useRefraction ? 1.0 : finalAlpha;
+    finalAlpha = useRefraction ? shoreFade : shoreFade * finalAlpha;
     
     return half4(finalRGB, finalAlpha);
 }
