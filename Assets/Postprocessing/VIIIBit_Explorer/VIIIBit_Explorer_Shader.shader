@@ -2,9 +2,9 @@ Shader "Axeria/Postprocessing/VIIIBit_Explorer_Shader"
 {
     Properties
     {
-//        _Downsampling("下采样强度", Int) = 4
-//        _Dithering("抖动强度", Range(0,1)) = 0.5
-//        _Opacity("8Bit Pallete不透明度",Range(0,1)) = 1
+        [HideInInspector] _Downsampling("下采样强度", Float) = 4
+        [HideInInspector] _Dithering("抖动强度", Range(0, 1)) = 0.5
+        [HideInInspector] _Opacity("8Bit Palette 不透明度", Range(0, 1)) = 1
     }
     SubShader
     {
@@ -22,6 +22,7 @@ Shader "Axeria/Postprocessing/VIIIBit_Explorer_Shader"
             
             #pragma vertex Vert 
             #pragma fragment Frag_Quantization
+            #pragma multi_compile_local_fragment _ _VIIIBIT_USE_SMOOTHSTEP
             
             #include "VIIIBit_Explorer.hlsl"
             

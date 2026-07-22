@@ -7,6 +7,7 @@ using UnityEngine;
 public sealed class VIIIBitExplorerController : MonoBehaviour
 {
     public const int MaxPaletteSize = 32;
+    private const string UseSmoothstepKeyword = "_VIIIBIT_USE_SMOOTHSTEP";
 
     private static readonly int PaletteRgbId = Shader.PropertyToID("_PaletteRGB");
     private static readonly int PaletteLabId = Shader.PropertyToID("_PaletteLab");
@@ -41,6 +42,10 @@ public sealed class VIIIBitExplorerController : MonoBehaviour
 
     [SerializeField, Range(0.0f, 1.0f)]
     private float dithering = 0.5f;
+
+    [SerializeField]
+    [Tooltip("Use smoothstep for secondary palette blending. Disable it to use a hard step.")]
+    private bool useSmoothstep;
 
     // Always upload fixed-size buffers because Unity does not allow a material
     // vector array's capacity to change after it has been assigned.
@@ -91,6 +96,16 @@ public sealed class VIIIBitExplorerController : MonoBehaviour
         set
         {
             dithering = Mathf.Clamp01(value);
+            Apply();
+        }
+    }
+
+    public bool UseSmoothstep
+    {
+        get => useSmoothstep;
+        set
+        {
+            useSmoothstep = value;
             Apply();
         }
     }
@@ -181,8 +196,13 @@ public sealed class VIIIBitExplorerController : MonoBehaviour
         targetMaterial.SetVectorArray(PaletteLabId, paletteLabVectors);
         targetMaterial.SetInt(PaletteCountId, paletteRGB.Length);
         targetMaterial.SetFloat(OpacityId, opacity);
-        targetMaterial.SetInt(DownsamplingId, downsampling);
+        targetMaterial.SetFloat(DownsamplingId, downsampling);
         targetMaterial.SetFloat(DitheringId, dithering);
+
+        if (useSmoothstep)
+            targetMaterial.EnableKeyword(UseSmoothstepKeyword);
+        else
+            targetMaterial.DisableKeyword(UseSmoothstepKeyword);
     }
 
     private void EnsureValidValues()

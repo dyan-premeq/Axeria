@@ -6,6 +6,8 @@ using UnityEngine.Rendering.Universal;
 // The RTHandle is then set as a global texture, which is available to shaders in the scene.
 public class VIIIBitExplorerPass : ScriptableRenderPass
 {
+    private static readonly int DownsamplingId = Shader.PropertyToID("_Downsampling");
+
     private ProfilingSampler m_ProfilingSampler = new ProfilingSampler("VIIIBitExplorerPass");
     private RTHandle cameraColorHandle;
     private RTHandle lowColorHandle;
@@ -29,7 +31,10 @@ public class VIIIBitExplorerPass : ScriptableRenderPass
     {
         // Configure the custom RTHandle
         var desc = cameraTextureDescriptor;
-        int downsampling = Mathf.Max(1, m_Material.GetInt("_Downsampling"));
+        int downsampling = Mathf.Max(
+            1,
+            Mathf.RoundToInt(m_Material.GetFloat(DownsamplingId))
+        );
         desc.width = Mathf.Max(1, (desc.width + downsampling - 1) / downsampling);
         desc.height = Mathf.Max(1, (desc.height + downsampling - 1) / downsampling);
         

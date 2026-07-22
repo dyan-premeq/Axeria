@@ -9,7 +9,7 @@ float4 _PaletteLab[MAX_PALETTE_SIZE]; // OKLab. Controlled by C#.
 float4 _PaletteRGB[MAX_PALETTE_SIZE]; // sRGB. Controlled by C#.
 int _PaletteCount;
 
-uint _Downsampling;
+float _Downsampling;
 float _Dithering;
 
 // Linear sRGB to OKLab
@@ -104,8 +104,11 @@ half4 Frag_Quantization(Varyings IN) : SV_Target
     );
     float threshold = bayer2x2[(gridLoc.y & 1) * 2 + (gridLoc.x & 1)] + 0.625;
     
-    float tt = smoothstep(0, threshold, weightB);
-    // tt = step(threshold, weightB);
+    #if defined(_VIIIBIT_USE_SMOOTHSTEP)
+        float tt = smoothstep(0, threshold, weightB);
+    #else
+        float tt = step(threshold, weightB);
+    #endif
     half3 final_gamma = lerp(best_gamma,secondary_gamma,  tt);
     return half4(SRGBToLinear(final_gamma), 1.0);
     // half4 originalColor = SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, IN.texcoord);
