@@ -13,7 +13,7 @@ Shader "Axeria/Postprocessing/VIIIBit_Explorer_Shader"
 
         Pass
         {
-            Name "8BitPass"
+            Name "QuantizeLowRes"
             
             HLSLPROGRAM
             
@@ -21,11 +21,30 @@ Shader "Axeria/Postprocessing/VIIIBit_Explorer_Shader"
             #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
             
             #pragma vertex Vert 
-            #pragma fragment Frag 
+            #pragma fragment Frag_Quantization
             
             #include "VIIIBit_Explorer.hlsl"
             
           
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "CompositePoint"
+            
+            Blend SrcAlpha OneMinusSrcAlpha
+            ColorMask RGB
+            
+            HLSLPROGRAM
+            
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
+            #include "VIIIBit_Explorer.hlsl" 
+            
+            #pragma vertex Vert 
+            #pragma fragment Frag_Composition
+
             ENDHLSL
         }
     }

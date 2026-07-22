@@ -39,22 +39,38 @@ half InterleavedGradientNoise(uint2 position)
     float2 p = position;
     return frac(52.9829189 * frac(dot(p, float2(0.06711056, 0.00583715))));
 }
-  
 
-half4 Frag(Varyings IN) : SV_Target
+// void test(Varyings IN)
+// {
+//     float4 downsampledTextureSize = float4(0, 0, _BlitTexture_TexelSize.z / _Downsampling, _BlitTexture_TexelSize.w / _Downsampling);
+//     downsampledTextureSize.x = 1 / downsampledTextureSize.z;
+//     downsampledTextureSize.y = 1 / downsampledTextureSize.w;
+//     
+//     float2 downsampledUV = (gridLoc + .5) * _Downsampling * _BlitTexture_TexelSize.xy;
+//     half dither = bayer2x2[(gridLoc.y & 1) * 2 + (gridLoc.x & 1)] * _Dithering;
+//     half4 src = SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, downsampledUV);
+//     downsampledTexture[target_x, target_y] = saturate(src.rgb + dither);
+// }   
+//
+// void newfrag(Varyings IN)
+// {
+//
+// }
+
+half4 Frag_Quantization(Varyings IN) : SV_Target
 {
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(IN);
     // uint2 texelLoc = IN.texcoord * _BlitTexture_TexelSize.zw;
-    uint2 gridLoc = IN.texcoord * _BlitTexture_TexelSize.zw / _Downsampling;
-    float2 downsampledUV = (gridLoc + .5) * _Downsampling * _BlitTexture_TexelSize.xy;
-
+    // uint2 gridLoc = IN.texcoord * _BlitTexture_TexelSize.zw / _Downsampling;
+    // float2 downsampledUV = (gridLoc + .5) * _Downsampling * _BlitTexture_TexelSize.xy;
+    uint2 gridLoc = IN.positionCS.xy; 
+        
     half dither = bayer2x2[(gridLoc.y & 1) * 2 + (gridLoc.x & 1)] * _Dithering;
     // half dither_texel = bayer2x2[(texelLoc.y & 1) * 2 + (texelLoc.x & 1)] * _Dithering;
     // half dither4x4 = bayer4x4[(gridLoc.y & 3) * 4 + (gridLoc.x & 3)] * _Dithering;
     // half ditherRan = (InterleavedGradientNoise(gridLoc) - 0.5) * _Dithering;
     
-    
-    half4 src = SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, downsampledUV);
+    half4 src = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord);
     half3 src_linear = saturate(src.rgb + dither);
     // half3 src_gamma = LinearToSRGB(src_linear);
     half3 src_lab = ec_LinearToOKLab(src_linear);
@@ -91,7 +107,21 @@ half4 Frag(Varyings IN) : SV_Target
     float tt = smoothstep(0, threshold, weightB);
     // tt = step(threshold, weightB);
     half3 final_gamma = lerp(best_gamma,secondary_gamma,  tt);
+    return half4(SRGBToLinear(final_gamma), 1.0);
+    // half4 originalColor = SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, IN.texcoord);
+    // return lerp(originalColor, half4(SRGBToLinear(final_gamma), src.a), _Opacity);
+}
 
-    half4 originalColor = SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, IN.texcoord);
-    return lerp(originalColor, half4(SRGBToLinear(final_gamma), src.a), _Opacity);
+//  Blit 的 source 自动成为 _BlitTexture
+//  fragment 的 SV_Target 自动写入 Blit 的 destination
+//  source/destination 都在 C# 端定义
+
+half4 Frag_Composition(Varyings IN) : SV_Target
+{
+    half4 lowColor = SAMPLE_TEXTURE2D_X(
+        _BlitTexture,
+        sampler_PointClamp,
+        IN.texcoord
+    );
+    return half4(lowColor.rgb, _Opacity);
 }
