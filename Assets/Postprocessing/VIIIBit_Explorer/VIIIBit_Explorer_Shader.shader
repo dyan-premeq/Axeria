@@ -23,6 +23,7 @@ Shader "Axeria/Postprocessing/VIIIBit_Explorer_Shader"
             #pragma vertex Vert 
             #pragma fragment Frag_Quantization
             #pragma multi_compile_local_fragment _ _VIIIBIT_USE_SMOOTHSTEP
+            #pragma multi_compile_local_fragment _ _VIIIBIT_USE_LEGACY_SECONDARY
             
             #include "VIIIBit_Explorer.hlsl"
             

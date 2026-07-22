@@ -78,24 +78,41 @@ half4 Frag_Quantization(Varyings IN) : SV_Target
     float best_dist = GetDist(src_lab, _PaletteLab[0].rgb);
     half3 best_gamma = _PaletteRGB[0].rgb;
     half3 best_lab = _PaletteLab[0].rgb;
+
+    #if defined(_VIIIBIT_USE_LEGACY_SECONDARY)
     half3 secondary_gamma = 0;
     half3 secondary_lab = 0;
-    
-    
+    #else
+    float secondary_dist = 1e32;
+    half3 secondary_gamma = best_gamma;
+    half3 secondary_lab = best_lab;
+    #endif
+
     int paletteCount = clamp(_PaletteCount, 1, MAX_PALETTE_SIZE);
     UNITY_LOOP
     for (int i = 1; i < paletteCount; ++i)
     {
-        half dist = GetDist(src_lab, _PaletteLab[i].rgb);
+        float dist = GetDist(src_lab, _PaletteLab[i].rgb);
+
         if (dist < best_dist)
         {
-            // secondary_dist = best_dist;
-            secondary_lab = best_lab;
+            #if !defined(_VIIIBIT_USE_LEGACY_SECONDARY)
+            secondary_dist = best_dist;
+            #endif
             secondary_gamma = best_gamma;
+            secondary_lab = best_lab;
             best_dist = dist;
             best_gamma = _PaletteRGB[i].rgb;
             best_lab = _PaletteLab[i].rgb;
         }
+        #if !defined(_VIIIBIT_USE_LEGACY_SECONDARY)
+        else if (dist < secondary_dist)
+        {
+            secondary_dist = dist;
+            secondary_gamma = _PaletteRGB[i].rgb;
+            secondary_lab = _PaletteLab[i].rgb;
+        }
+        #endif
     }
     float3 direction = secondary_lab - best_lab;
     float weightB = saturate(

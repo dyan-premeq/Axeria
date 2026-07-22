@@ -8,6 +8,7 @@ public sealed class VIIIBitExplorerController : MonoBehaviour
 {
     public const int MaxPaletteSize = 32;
     private const string UseSmoothstepKeyword = "_VIIIBIT_USE_SMOOTHSTEP";
+    private const string UseLegacySecondaryKeyword = "_VIIIBIT_USE_LEGACY_SECONDARY";
 
     private static readonly int PaletteRgbId = Shader.PropertyToID("_PaletteRGB");
     private static readonly int PaletteLabId = Shader.PropertyToID("_PaletteLab");
@@ -46,6 +47,10 @@ public sealed class VIIIBitExplorerController : MonoBehaviour
     [SerializeField]
     [Tooltip("Use smoothstep for secondary palette blending. Disable it to use a hard step.")]
     private bool useSmoothstep;
+
+    [SerializeField]
+    [Tooltip("Use the legacy, palette-order-dependent secondary color selection.")]
+    private bool useLegacySecondarySelection;
 
     // Always upload fixed-size buffers because Unity does not allow a material
     // vector array's capacity to change after it has been assigned.
@@ -106,6 +111,16 @@ public sealed class VIIIBitExplorerController : MonoBehaviour
         set
         {
             useSmoothstep = value;
+            Apply();
+        }
+    }
+
+    public bool UseLegacySecondarySelection
+    {
+        get => useLegacySecondarySelection;
+        set
+        {
+            useLegacySecondarySelection = value;
             Apply();
         }
     }
@@ -203,6 +218,11 @@ public sealed class VIIIBitExplorerController : MonoBehaviour
             targetMaterial.EnableKeyword(UseSmoothstepKeyword);
         else
             targetMaterial.DisableKeyword(UseSmoothstepKeyword);
+
+        if (useLegacySecondarySelection)
+            targetMaterial.EnableKeyword(UseLegacySecondaryKeyword);
+        else
+            targetMaterial.DisableKeyword(UseLegacySecondaryKeyword);
     }
 
     private void EnsureValidValues()
