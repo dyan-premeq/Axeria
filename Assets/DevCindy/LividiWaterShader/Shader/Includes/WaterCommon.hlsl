@@ -11,7 +11,7 @@ half3 RGBToHSV(half3 In)
     half4 P = lerp(half4(In.bg, K.wz), half4(In.gb, K.xy), step(In.b, In.g));
     half4 Q = lerp(half4(P.xyw, In.r), half4(In.r, P.yzx), step(P.x, In.r));
     half D = Q.x - min(Q.w, Q.y);
-    half E = 1e-10;
+    half E = 1e-6;
     return half3(abs(Q.z + (Q.w - Q.y)/(6.0 * D + E)), D / (Q.x + E), Q.x);
 }
 
@@ -50,10 +50,12 @@ void HSVLerp_half(half4 A, half4 B, half T, out half4 Out)
 
     if(d <= 0.5) hue = A.x + T * d;
 
-    half sat = A.y + T * (B.y - A.y);
-    half val = A.z + T * (B.z - A.z);
+    // half sat = A.y + T * (B.y - A.y);
+    // half val = A.z + T * (B.z - A.z);
     half alpha = A.w + t * (B.w - A.w);
-
+    half sat = lerp(A.y, B.y, t);
+    half val = lerp(A.z, B.z, t);
+    
     half3 rgb = HSVToRGB(half3(hue,sat,val));
 
     Out = half4(rgb, alpha);
