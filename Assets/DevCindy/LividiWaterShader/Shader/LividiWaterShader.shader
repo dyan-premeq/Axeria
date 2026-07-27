@@ -23,10 +23,12 @@ Shader "LividiWaterShader"
         
         // Gerstener Wave
         [ToggleUI]_EnableWave("开启水波", Float) = 1
-        _GerstnerSteepness("Gersnter 波 Steepness", Range(0, 0.25)) = 0.0825
-        _GerstnerWavelength("Gerstner 波长", Float) = 1.22
-        _GerstnerSpeed("Gerstner 波相速度", Float) = 0.55
-        _GerstnerDirection("Gerstner 波方向（一个分量控制一个波向）", Vector) = (0.1, 0.3, 0.4, 1)
+        _GerstnerSteepness("Gerstner 波 Steepness（X/Y/Z/W = 波 1–4）", Vector) = (0.0825, 0.0825, 0.0825, 0.0825)
+        _GerstnerWavelength("Gerstner 波长（X/Y/Z/W = 波 1–4）", Vector) = (1.22, 1.22, 1.22, 1.22)
+        [ToggleUI]_GerstnerUseAutoPhaseSpeed("自动计算相速度", Float) = 1
+        _GerstnerAutoSpeedMultiplier("自动相速度倍率", Float) = 1
+        _GerstnerSpeed("手动相速度（X/Y/Z/W = 波 1–4）", Vector) = (0.55, 0.55, 0.55, 0.55)
+        _GerstnerDirection("Gerstner 波方向（X/Y/Z/W = 波 1–4）", Vector) = (0.1, 0.3, 0.4, 1)
         
         // Stylized Specular
         [HDR]_WaterSpecularColor("高光颜色",Color) = (1,1,1,1)

@@ -12,7 +12,6 @@ CBUFFER_START(UnityPerMaterial)
     float   _ShoreFadeSmoothness;
 
 // Normal and Distortion
-
     float   _WaterNormalScaling;
     float   _WaterNormalScalingRatio;
     float4  _WaterNormalTiling;
@@ -30,9 +29,11 @@ CBUFFER_START(UnityPerMaterial)
 
 // Gerstner Wave
     float   _EnableWave;
-    float   _GerstnerSteepness;
-    float   _GerstnerWavelength;
-    float   _GerstnerSpeed;
+    float4  _GerstnerSteepness;
+    float4  _GerstnerWavelength;
+    float   _GerstnerUseAutoPhaseSpeed;
+    float   _GerstnerAutoSpeedMultiplier;
+    float4  _GerstnerSpeed;
     float4  _GerstnerDirection;
 
 // Caustics

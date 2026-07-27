@@ -17,7 +17,7 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
     private static readonly Dictionary<string, float> FloatMinimums =
         new Dictionary<string, float>(StringComparer.Ordinal)
         {
-            { "_GerstnerWavelength", 0.001f }
+            { "_GerstnerAutoSpeedMultiplier", 0.0f }
         };
 
     private static readonly HashSet<string> Vector2PropertyNames =
@@ -237,6 +237,10 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
                     || toggle.hasMixedValue
                     || toggle.floatValue > 0.5f;
                 bool indentSettings = showSettings && toggle != null;
+                MaterialProperty autoPhaseSpeed = FindProperty(
+                    "_GerstnerUseAutoPhaseSpeed",
+                    properties,
+                    false);
 
                 if (indentSettings)
                 {
@@ -256,7 +260,12 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
                         continue;
                     }
 
-                    DrawAutomaticProperty(materialEditor, property);
+                    bool disableForPhaseSpeedMode =
+                        ShouldDisableForPhaseSpeedMode(property, autoPhaseSpeed);
+                    using (new EditorGUI.DisabledScope(disableForPhaseSpeedMode))
+                    {
+                        DrawAutomaticProperty(materialEditor, property);
+                    }
                 }
 
                 if (indentSettings)
@@ -273,6 +282,32 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
         }
 
         return true;
+    }
+
+    private static bool ShouldDisableForPhaseSpeedMode(
+        MaterialProperty property,
+        MaterialProperty autoPhaseSpeed)
+    {
+        if (autoPhaseSpeed == null || autoPhaseSpeed.hasMixedValue)
+        {
+            return false;
+        }
+
+        bool useAutomaticSpeed = autoPhaseSpeed.floatValue > 0.5f;
+        if (string.Equals(property.name, "_GerstnerSpeed", StringComparison.Ordinal))
+        {
+            return useAutomaticSpeed;
+        }
+
+        if (string.Equals(
+            property.name,
+            "_GerstnerAutoSpeedMultiplier",
+            StringComparison.Ordinal))
+        {
+            return !useAutomaticSpeed;
+        }
+
+        return false;
     }
 
     private bool DrawUncategorizedSection(
@@ -330,6 +365,22 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
         MaterialEditor materialEditor,
         MaterialProperty property)
     {
+        if (string.Equals(property.name, "_GerstnerSteepness", StringComparison.Ordinal))
+        {
+            DrawClampedVector4Property(materialEditor, property, 0.0f, 0.25f);
+            return;
+        }
+
+        if (string.Equals(property.name, "_GerstnerWavelength", StringComparison.Ordinal))
+        {
+            DrawClampedVector4Property(
+                materialEditor,
+                property,
+                0.001f,
+                float.PositiveInfinity);
+            return;
+        }
+
         if (ShouldDrawAsVector2(property))
         {
             DrawVector2Property(materialEditor, property, property.displayName);
@@ -343,6 +394,33 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
         }
 
         materialEditor.ShaderProperty(property, property.displayName);
+    }
+
+    private static void DrawClampedVector4Property(
+        MaterialEditor materialEditor,
+        MaterialProperty property,
+        float minimum,
+        float maximum)
+    {
+        Vector4 value = property.vectorValue;
+
+        EditorGUI.showMixedValue = property.hasMixedValue;
+        EditorGUI.BeginChangeCheck();
+        Vector4 nextValue = EditorGUILayout.Vector4Field(
+            new GUIContent(property.displayName),
+            value);
+
+        if (EditorGUI.EndChangeCheck())
+        {
+            materialEditor.RegisterPropertyChangeUndo(property.displayName);
+            property.vectorValue = new Vector4(
+                Mathf.Clamp(nextValue.x, minimum, maximum),
+                Mathf.Clamp(nextValue.y, minimum, maximum),
+                Mathf.Clamp(nextValue.z, minimum, maximum),
+                Mathf.Clamp(nextValue.w, minimum, maximum));
+        }
+
+        EditorGUI.showMixedValue = false;
     }
 
     private static void DrawFloatPropertyWithMinimum(

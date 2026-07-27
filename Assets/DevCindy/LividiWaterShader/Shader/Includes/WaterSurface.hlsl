@@ -36,16 +36,24 @@ float3 GerstnerWave(float3 position, float steepness, float wavelength, float sp
 }
 
 
-void GerstnerWaves_float(float3 position, float steepness, float wavelength, float speed, float4 directions, out float3 Offset, out float3 normal)
+void GerstnerWaves_float(float3 position, float4 steepness, float4 wavelength, float4 speed, float4 directions, out float3 Offset, out float3 normal)
 {
     Offset = 0;
     float3 tangent = float3(1, 0, 0);
     float3 binormal = float3(0, 0, 1);
 
-    Offset += GerstnerWave(position, steepness, wavelength, speed, directions.x, tangent, binormal);
-    Offset += GerstnerWave(position, steepness, wavelength, speed, directions.y, tangent, binormal);
-    Offset += GerstnerWave(position, steepness, wavelength, speed, directions.z, tangent, binormal);
-    Offset += GerstnerWave(position, steepness, wavelength, speed, directions.w, tangent, binormal);
+    float4 safeWavelength = max(wavelength, 0.001);
+    float4 automaticSpeed = sqrt(9.81 * safeWavelength / (2.0 * PI))
+        * max(_GerstnerAutoSpeedMultiplier, 0.0);
+    float4 phaseSpeed = lerp(
+        speed,
+        automaticSpeed,
+        step(0.5, _GerstnerUseAutoPhaseSpeed));
+
+    Offset += GerstnerWave(position, steepness.x, safeWavelength.x, phaseSpeed.x, directions.x, tangent, binormal);
+    Offset += GerstnerWave(position, steepness.y, safeWavelength.y, phaseSpeed.y, directions.y, tangent, binormal);
+    Offset += GerstnerWave(position, steepness.z, safeWavelength.z, phaseSpeed.z, directions.z, tangent, binormal);
+    Offset += GerstnerWave(position, steepness.w, safeWavelength.w, phaseSpeed.w, directions.w, tangent, binormal);
 
     normal = normalize(cross(binormal, tangent));
     //TBN = transpose(float3x3(tangent, binormal, normal));
