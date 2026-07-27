@@ -44,6 +44,16 @@ Shader "LividiWaterShader"
         _RefractionStrength_Base("基础折射强度", Float) = 0.008
         _RefractionStrength_Far("远处折射强度", Float) = 0.002
 
+        // Reflection
+        [ToggleUI]_UseReflection("开启反射", Float) = 1
+        [Toggle(_USE_SCHLICK)] _UseSchlick ("使用 Schlick 近似", Float) = 1
+        _PlanarReflectionBlend("平面反射占比", Range(0,1)) = 0
+        _ReflectionRoughness("反射粗糙度", Range(0,1)) = 0.1
+        _ReflectionF0("基础反射率 (F0)", Range(0,1)) = 0.02
+        _ReflectionFresnel("菲涅尔反射强度", Range(0,1)) = 0.5
+        _ReflectionStrength("反射强度", Range(0,2)) = 1
+        _ReflectionDistortionStrength("反射扰动强度", Range(0,1)) = 0
+
         // Caustics
         [ToggleUI]_EnableCaustics("开启焦散", Float) = 0
         [NoScaleOffset]_CausticMap("焦散贴图", 2D) = "white" {}

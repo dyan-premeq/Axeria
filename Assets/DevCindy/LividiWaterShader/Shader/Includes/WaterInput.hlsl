@@ -52,6 +52,16 @@ CBUFFER_START(UnityPerMaterial)
     float   _RefractionStrength_Base;
     float   _RefractionStrength_Far;
 
+// Reflection
+    float   _UseReflection;
+    float   _PlanarReflectionBlend;
+    float   _ReflectionRoughness;
+    float   _ReflectionF0;
+    float   _ReflectionStrength;
+    float   _ReflectionFresnel;
+    float   _ReflectionDistortionStrength;
+
+
 //Surface Foam
     float   _UseSurfaceFoam;
     half4   _SurfaceFoam_Color;
@@ -121,6 +131,9 @@ SAMPLER(sampler_ShoreLine_DissolveMask);
 
 TEXTURE2D(_CausticMap);
 SAMPLER(sampler_CausticMap);
+
+TEXTURE2D(_PlanarReflectionTexture);
+SAMPLER(sampler_PlanarReflectionTexture);
 
 struct Attributes
 {

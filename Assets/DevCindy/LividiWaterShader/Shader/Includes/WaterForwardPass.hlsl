@@ -6,6 +6,7 @@
 #include "WaterSurface.hlsl"
 #include "WaterLighting.hlsl"
 #include "WaterRefraction.hlsl"
+#include "WaterReflection.hlsl"
 
 Varyings Vert(Attributes input)
 {
@@ -68,10 +69,13 @@ half4 Frag(Varyings input) : SV_Target
     // return half4(screenUV + GetRefractedOffset(waterNormalWS, geometricNormalWS), 0.0, 1.0);
     // return half4(waterNormalSampleWS.normalWS * .5 + .5, 1.0);
     
+    float3 viewDirWS = GetWorldSpaceNormalizeViewDir(surfaceContext.positionWS);
+
     bool useSurfaceFoam = _UseSurfaceFoam > 0.5;
     bool useIntersectionFoam = _UseIntersecFoam > 0.5;
     bool useShorelineFoam = _UseShoreLineFoam > 0.5;
     bool useRefraction = _UseRefraction > 0.5;
+    bool useReflection = _UseReflection > 0.5;
     bool useCaustics = _EnableCaustics > 0.5;
     
     bool needsFoamDistortion =
@@ -120,10 +124,15 @@ half4 Frag(Varyings input) : SV_Target
         // return half4(difference, 1.0h);
     }
     
-    half3 viewDirWS = GetWorldSpaceNormalizeViewDir(surfaceContext.positionWS);
+
     half3 waterSpecular = EvaluateMainWaterSpecular(mainLight.direction, waterNormalSampleWS.normalWS, viewDirWS, mainLight);
     
     finalRGB += waterSpecular;
+    UNITY_BRANCH if (useReflection)
+    {
+            half4 reflenctionRGB  = ResolveReflectionColor(screenUV, viewDirWS, waterNormalSampleWS.normalWS, surfaceContext);
+            finalRGB = lerp(finalRGB, reflenctionRGB.rgb, reflenctionRGB.a);
+    }
     
     UNITY_BRANCH if (useIntersectionFoam)
     {
@@ -143,10 +152,7 @@ half4 Frag(Varyings input) : SV_Target
     // {
     // }
     
-    // return half4(waterNormalWS, 1.0);
 
-    // finalRGB = ApplyWaterNormalLighting(finalRGB, geometricNormalWS, waterNormalWS, mainLight);
-    
     finalAlpha = useRefraction ? shoreFade : shoreFade * finalAlpha;
     
     return half4(finalRGB, finalAlpha);

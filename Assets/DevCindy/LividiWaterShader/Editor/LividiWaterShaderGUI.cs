@@ -76,6 +76,14 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
             "启用折射",
             "_Refraction"),
         new SectionDefinition(
+            "Reflection",
+            "反射",
+            true,
+            "_UseReflection",
+            "启用反射",
+            "_Reflection",
+            "_PlanarReflection"),
+        new SectionDefinition(
             "Caustics",
             "焦散",
             false,

@@ -17,7 +17,7 @@ struct WaterRefractionSample
     half3 sceneColor;
 };
 
-float2 GetRefractedOffset(float3 mappedNormalWS, float3 geometricNormalWS, float refractionStrength)
+float2 GetRefractedOffset(float3 mappedNormalWS, float3 geometricNormalWS)
 {
     float3 normalDeltaWS = mappedNormalWS - geometricNormalWS;
     // normalDeltaWS = mappedNormalWS;
@@ -25,7 +25,7 @@ float2 GetRefractedOffset(float3 mappedNormalWS, float3 geometricNormalWS, float
     // normalDeltaVS = normalDeltaWS.xy;
     normalDeltaVS.x *= _ScreenParams.y / _ScreenParams.x;
     
-    return normalDeltaVS.xy * refractionStrength;
+    return normalDeltaVS.xy;
 }
 
 // half3 Refraction(float2 screenUV, float3 mappedNormalWS, float3 geometricNormalWS)
@@ -52,7 +52,7 @@ WaterRefractionSample ResolveRefractionUV(float2 screenUV, float3 mappedNormalWS
     float strength = lerp(_RefractionStrength_Base, _RefractionStrength_Far, distMask);
     strength *= shoreFade;
     
-    float2 distOffset = GetRefractedOffset(mappedNormalWS, ctx.geometricNormalWS, strength);
+    float2 distOffset = GetRefractedOffset(mappedNormalWS, ctx.geometricNormalWS)  * strength;
     float2 RefractedUV = screenUV + distOffset;
     // float refractedSceneRawDepth = SampleSceneDepth(screenUV);
     WaterDepthSample refractedSceneDepthSample = SampleWaterDepth(ctx.positionWS, ctx.referenceUpWS, _DepthFadeDistance, RefractedUV);
