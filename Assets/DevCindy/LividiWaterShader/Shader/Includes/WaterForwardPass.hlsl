@@ -77,6 +77,7 @@ half4 Frag(Varyings input) : SV_Target
     bool useRefraction = _UseRefraction > 0.5;
     bool useReflection = _UseReflection > 0.5;
     bool useCaustics = _EnableCaustics > 0.5;
+    bool useUnderWaterFog = _UseUnderwaterFog > 0.5;
     
     bool needsFoamDistortion =
         (useSurfaceFoam && abs(_SurfaceFoam_Distortion) > 0.0)
@@ -115,13 +116,9 @@ half4 Frag(Varyings input) : SV_Target
         half4 opticalWaterRGB = 0;
         HSVLerp_half(_Color_Deep, _Color_Shallow, opticalDepth.shallowFactor.z, opticalWaterRGB);
         half3 litWaterRGB = ApplyWaterNormalLighting(opticalWaterRGB.rgb, geometricNormalWS ,waterNormalSampleWS.normalWS, mainLight);
-        finalRGB = lerp(opticalSceneRGB, litWaterRGB.rgb, opticalWaterRGB.a);
+        float T = useUnderWaterFog ? EvaluateWaterTransmittance(surfaceContext.positionWS, opticalDepth) : 1.0 - opticalWaterRGB.a;
+        finalRGB = lerp( litWaterRGB.rgb, opticalSceneRGB, T);
         
-        // half3 original = SampleSceneColor(screenUV);
-        // half3 difference =
-        //     abs(refractionSample.sceneColor - original) * 20.0h;
-        //
-        // return half4(difference, 1.0h);
     }
     
 

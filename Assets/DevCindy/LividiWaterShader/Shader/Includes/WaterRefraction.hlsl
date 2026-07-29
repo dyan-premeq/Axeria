@@ -28,21 +28,15 @@ float2 GetRefractedOffset(float3 mappedNormalWS, float3 geometricNormalWS)
     return normalDeltaVS.xy;
 }
 
-// half3 Refraction(float2 screenUV, float3 mappedNormalWS, float3 geometricNormalWS)
-// {
-    // float2 distOffset = GetRefractedOffset(mappedNormalWS, geometricNormalWS);
-    // float2 uvG = screenUV + distOffset;
-    // float2 uvR = screenUV + distOffset * (1.0 + _ChromaticAberration); // 红光偏折多
-    // float2 uvB = screenUV + distOffset * (1.0 - _ChromaticAberration); // 蓝光偏折少
-
-    // 采样三次重组颜色
-    // half r = SampleSceneColor(uvR).r;
-    // half g = SampleSceneColor(uvG).g;
-    // half b = SampleSceneColor(uvB).b;
-    // half3 refrCol = half3(r, g, b);
-    // return refrCol;
-    // return 0;
-// }
+float EvaluateWaterTransmittance(float3 surfacePositionWS, WaterDepthSample opticalDepth)
+{
+    if (!opticalDepth.valid)
+    {
+        return 0;
+    }
+    float dist = distance(surfacePositionWS, opticalDepth.scenePositionWS);
+    return exp2(-dist / _UnderwaterFogHalfDistance);
+}
 
 WaterRefractionSample ResolveRefractionUV(float2 screenUV, float3 mappedNormalWS, WaterSurfaceContext ctx, WaterDepthSample originalWaterDepth, float shoreFade)
 {

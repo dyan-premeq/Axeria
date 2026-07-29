@@ -52,6 +52,10 @@ CBUFFER_START(UnityPerMaterial)
     float   _RefractionStrength_Base;
     float   _RefractionStrength_Far;
 
+// Underwater Fog
+    float   _UseUnderwaterFog;
+    float   _UnderwaterFogHalfDistance;
+
 // Reflection
     float   _UseReflection;
     float   _PlanarReflectionBlend;

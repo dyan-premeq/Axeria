@@ -44,6 +44,12 @@ Shader "LividiWaterShader"
         _RefractionStrength_Base("基础折射强度", Float) = 0.008
         _RefractionStrength_Far("远处折射强度", Float) = 0.002
 
+        // Underwater Fog
+        [ToggleUI]_UseUnderwaterFog("开启水下雾", Float) = 0
+        _UnderwaterFogHalfDistance("水下雾半衰距离", Range(0.01, 50)) = 5.0
+//        _UnderwaterFogHalfDistance("水下雾半衰距离 (R/G/B)", Vector) = (2.5, 8.0, 12.0)
+
+
         // Reflection
         [ToggleUI]_UseReflection("开启反射", Float) = 1
         [Toggle(_USE_SCHLICK)] _UseSchlick ("使用 Schlick 近似", Float) = 1

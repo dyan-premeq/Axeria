@@ -76,6 +76,16 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
             "启用折射",
             "_Refraction"),
         new SectionDefinition(
+            "UnderwaterFog",
+            "水下雾",
+            true,
+            "_UseUnderwaterFog",
+            "启用水下雾",
+            "_UnderwaterFog")
+            .Requires(
+                "_UseRefraction",
+                "水下雾依赖折射；请先为所有选中的材质启用折射。"),
+        new SectionDefinition(
             "Reflection",
             "反射",
             true,
