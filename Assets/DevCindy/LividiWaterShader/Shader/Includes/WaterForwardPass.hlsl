@@ -116,8 +116,10 @@ half4 Frag(Varyings input) : SV_Target
         half4 opticalWaterRGB = 0;
         HSVLerp_half(_Color_Deep, _Color_Shallow, opticalDepth.shallowFactor.z, opticalWaterRGB);
         half3 litWaterRGB = ApplyWaterNormalLighting(opticalWaterRGB.rgb, geometricNormalWS ,waterNormalSampleWS.normalWS, mainLight);
-        float T = useUnderWaterFog ? EvaluateWaterTransmittance(surfaceContext.positionWS, opticalDepth) : 1.0 - opticalWaterRGB.a;
-        finalRGB = lerp( litWaterRGB.rgb, opticalSceneRGB, T);
+        float3 T = useUnderWaterFog ? EvaluateWaterTransmittance(surfaceContext.positionWS, opticalDepth) : 1.0 - opticalWaterRGB.a;
+        finalRGB.r = lerp( litWaterRGB.r, opticalSceneRGB.r, T.r);
+        finalRGB.g = lerp( litWaterRGB.g, opticalSceneRGB.g, T.g);
+        finalRGB.b = lerp( litWaterRGB.b, opticalSceneRGB.b, T.b);
         
     }
     

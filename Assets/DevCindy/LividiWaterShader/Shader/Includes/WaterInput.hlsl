@@ -54,7 +54,7 @@ CBUFFER_START(UnityPerMaterial)
 
 // Underwater Fog
     float   _UseUnderwaterFog;
-    float   _UnderwaterFogHalfDistance;
+    float4  _UnderwaterFogHalfDistance;
 
 // Reflection
     float   _UseReflection;

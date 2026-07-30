@@ -46,8 +46,8 @@ Shader "LividiWaterShader"
 
         // Underwater Fog
         [ToggleUI]_UseUnderwaterFog("开启水下雾", Float) = 0
-        _UnderwaterFogHalfDistance("水下雾半衰距离", Range(0.01, 50)) = 5.0
-//        _UnderwaterFogHalfDistance("水下雾半衰距离 (R/G/B)", Vector) = (2.5, 8.0, 12.0)
+        // _UnderwaterFogHalfDistance("水下雾半衰距离", Range(0.01, 50)) = 5.0
+        _UnderwaterFogHalfDistance("水下雾半衰距离 (R/G/B)", Vector) = (2.5, 8.0, 12.0)
 
 
         // Reflection

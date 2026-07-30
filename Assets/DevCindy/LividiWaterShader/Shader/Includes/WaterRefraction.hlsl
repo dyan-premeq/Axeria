@@ -28,14 +28,14 @@ float2 GetRefractedOffset(float3 mappedNormalWS, float3 geometricNormalWS)
     return normalDeltaVS.xy;
 }
 
-float EvaluateWaterTransmittance(float3 surfacePositionWS, WaterDepthSample opticalDepth)
+float3 EvaluateWaterTransmittance(float3 surfacePositionWS, WaterDepthSample opticalDepth)
 {
     if (!opticalDepth.valid)
     {
         return 0;
     }
-    float dist = distance(surfacePositionWS, opticalDepth.scenePositionWS);
-    return exp2(-dist / _UnderwaterFogHalfDistance);
+    float3 dist = distance(surfacePositionWS, opticalDepth.scenePositionWS);
+    return exp2(-dist / _UnderwaterFogHalfDistance.rgb);
 }
 
 WaterRefractionSample ResolveRefractionUV(float2 screenUV, float3 mappedNormalWS, WaterSurfaceContext ctx, WaterDepthSample originalWaterDepth, float shoreFade)
@@ -111,8 +111,9 @@ float3 EvaluateWaterCaustics(WaterDepthSample depthSample, float3 waterPositionW
     
     float3 causticRGB = min(causticA, causticB);
     
-    causticRGB = pow(saturate(causticRGB), _CausticSharpness);
-    
+    causticRGB = pow(saturate(causticRGB), _CausticSharpness)
+               * exp2(-max(0.0, depthSample.signedWaterDepth) / _UnderwaterFogHalfDistance.rgb);
+
     float distMask = CameraDistanceMask(waterPositionWS, _CausticsStart, _CausticsFadingSmoothness).y;
     
     return causticRGB * distMask;
