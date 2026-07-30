@@ -190,6 +190,30 @@ float SurfaceFoamMask(float2 uvFoam, float2 surfaceDistortion)
     return surfaceFoamMask;
 }
 
+// 光路贴近地平线或向上时淡出：掠射角下光基本被反射，几乎没有直射光入水。
+float FoamShadowHorizonFade(float3 lightPathDirWS)
+{
+    return smoothstep(0.0, max(_FoamShadow_HorizonFade, 0.001), -lightPathDirWS.y);
+}
+
+// 泡沫阴影：表面泡沫挡住入水的折射光，影子落在水底（焦散的"负片"）。
+// 折射把水下角度限制在临界角（48.6°）内，偏移天然封顶于约 1.13 × 水深，
+// 不需要额外截断。
+float FoamShadowOnFloorMask(
+    float3 scenePositionWS,
+    float waterDepth,
+    float2 surfaceDistortion,
+    float3 lightPathDirWS) // lightPathDirWS = -mainLight.direction（光传播方向，向下时 y < 0）。
+{
+    float3 refractedDirWS = refract(lightPathDirWS, float3(0.0, 1.0, 0.0), 1.0 / 1.33);
+    // -refractedDirWS.y >= cos(临界角) ≈ 0.66；max 仅兜底光路向上时 refract 的无效输出
+    float2 entryXZ = scenePositionWS.xz
+        - max(waterDepth, 0.0) * refractedDirWS.xz / max(-refractedDirWS.y, 0.5);
+
+    float shadowMask = SurfaceFoamMask(entryXZ * LIVIDI_PLANAR_UV_SCALE, surfaceDistortion);
+    return shadowMask * FoamShadowHorizonFade(lightPathDirWS);
+}
+
 float IntersectionFoamMask(float2 uvFoam, float2 surfaceDistortion, float shallowFactor)
 {
     float2 intersectionFoamUV = UVPannerDistorted(

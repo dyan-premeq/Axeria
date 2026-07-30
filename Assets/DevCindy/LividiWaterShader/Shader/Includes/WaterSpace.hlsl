@@ -3,6 +3,10 @@
 
 #include "WaterCommon.hlsl"
 
+// Planar mapping 的世界 XZ → UV 缩放。凡是从世界坐标重建 planar UV 的地方
+// （如泡沫阴影反推光线入水点）都必须与 BuildPlanarWaterMapping 保持一致。
+#define LIVIDI_PLANAR_UV_SCALE 0.1
+
 // BuildWaterSurfaceContext() owns the mapping setup for the current water
 // space. Surface sampling consumes that context and exposes only normalWS to
 // lighting.
@@ -108,7 +112,7 @@ WaterPlanarMapping BuildPlanarWaterMapping(
 )
 {
     WaterPlanarMapping mapping = (WaterPlanarMapping)0;
-    mapping.uv = mappingPositionWS.xz * 0.1;
+    mapping.uv = mappingPositionWS.xz * LIVIDI_PLANAR_UV_SCALE;
     mapping.basis = BuildPlanarWaterBasis(
         positionWS,
         mapping.uv,

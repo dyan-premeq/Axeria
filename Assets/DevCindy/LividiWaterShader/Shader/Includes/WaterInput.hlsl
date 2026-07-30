@@ -77,6 +77,12 @@ CBUFFER_START(UnityPerMaterial)
     float   _SurfaceFoam_MaskInverse;
     float   _SurfaceFoam_Distortion;
 
+//Foam Shadow
+    float   _UseFoamShadow;
+    half4   _FoamShadow_Tint;
+    float   _FoamShadow_Strength;
+    float   _FoamShadow_HorizonFade;
+
 //Intersection Foam
     float   _UseIntersecFoam;
     half4   _IntersecFoam_Color;

@@ -118,6 +118,16 @@ public sealed class LividiWaterShaderGUI : ShaderGUI
             "启用表面白沫",
             "_SurfaceFoam"),
         new SectionDefinition(
+            "FoamShadow",
+            "泡沫阴影",
+            false,
+            "_UseFoamShadow",
+            "启用泡沫阴影（投到水底）",
+            "_FoamShadow")
+            .Requires(
+                "_UseSurfaceFoam",
+                "泡沫阴影复用表面白沫的遮罩且依赖折射；请先为所有选中的材质启用表面白沫和折射。"),
+        new SectionDefinition(
             "IntersectionFoam",
             "相交白沫",
             true,

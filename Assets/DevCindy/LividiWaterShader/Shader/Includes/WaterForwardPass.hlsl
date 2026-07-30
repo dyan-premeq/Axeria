@@ -78,6 +78,8 @@ half4 Frag(Varyings input) : SV_Target
     bool useReflection = _UseReflection > 0.5;
     bool useCaustics = _EnableCaustics > 0.5;
     bool useUnderWaterFog = _UseUnderwaterFog > 0.5;
+    // 泡沫阴影复用表面泡沫遮罩，surface foam 关闭时无意义
+    bool useFoamShadow = useSurfaceFoam && _UseFoamShadow > 0.5;
     
     bool needsFoamDistortion =
         (useSurfaceFoam && abs(_SurfaceFoam_Distortion) > 0.0)
@@ -103,14 +105,34 @@ half4 Frag(Varyings input) : SV_Target
         WaterDepthSample opticalDepth = refractionSample.depthSample;
 
         half3 opticalSceneRGB = refractionSample.sceneColor;
-        
+
+        half floorFoamShadow = 0.0h;
+        UNITY_BRANCH if (useFoamShadow)
+        {
+            floorFoamShadow = FoamShadowOnFloorMask(
+                opticalDepth.scenePositionWS,
+                opticalDepth.signedWaterDepth,
+                surfaceDistortion,
+                -mainLight.direction);
+                
+            // 几何阴影里没有直射光可挡
+            floorFoamShadow *= opticalDepth.valid
+                * step(0.0, opticalDepth.signedWaterDepth)
+                * mainLight.shadowAttenuation;
+            opticalSceneRGB *= lerp(
+                half3(1.0h, 1.0h, 1.0h),
+                _FoamShadow_Tint.rgb,
+                floorFoamShadow * _FoamShadow_Strength);
+        }
+
         UNITY_BRANCH if (useCaustics)
         {
             // 如果不用 opticalDepth，而是 geometryDepth？
             // 焦散本身也是从水底反射过来最终被看到的，所以也需要经过折射。如果用 geometry depth
             // 就会看到你折射你的，我的焦散好像浮在上面一样，不真实
             half3 causticMask = EvaluateWaterCaustics(opticalDepth, surfaceContext.positionWS);
-            opticalSceneRGB += causticMask;
+            // 被泡沫挡住的直射光同样形不成焦散
+            opticalSceneRGB += causticMask * (1.0h - floorFoamShadow);
         }
         
         half4 opticalWaterRGB = 0;

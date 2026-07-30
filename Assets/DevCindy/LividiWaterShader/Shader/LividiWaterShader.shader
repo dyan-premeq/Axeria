@@ -89,6 +89,12 @@ Shader "LividiWaterShader"
         [ToggleUI]_SurfaceFoam_MaskInverse("反向采样表面泡沫遮罩", Float) = 0
         _SurfaceFoam_Distortion("表面泡沫变形程度", Float) = 0
         
+        // FoamShadow（表面泡沫投到水底的阴影，复用其遮罩，需开启折射）
+        [ToggleUI]_UseFoamShadow("开启泡沫阴影", Float) = 0
+        _FoamShadow_Tint("泡沫阴影颜色", Color) = (0.35, 0.45, 0.55, 1)
+        _FoamShadow_Strength("泡沫阴影强度", Range(0,1)) = 0.5
+        _FoamShadow_HorizonFade("地平线渐隐带", Range(0.01,0.5)) = 0.1
+
         // IntersectionFoam
         [ToggleUI]_UseIntersecFoam("开启相交泡沫", Float) = 1
         [NoScaleOffset]_IntersecFoamMask("相交泡沫遮罩", 2D) = "white" {}
