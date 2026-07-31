@@ -1,5 +1,24 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-9013459575597627865
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f46d0075892dcd4491567ed566eae7a, type: 3}
+  m_Name: TAAResolveRenderFeature
+  m_EditorClassIdentifier: 
+  m_Active: 0
+  debugResolveMaterial: {fileID: 2100000, guid: 661ff7d77b7949d4ab13a8c6ba760635,
+    type: 2}
+  blendAlpha: 0.9
+  debugMotionVector: 0
+  debugMotionVectorScale: 500
+  debugProjectedHistory: 0
 --- !u!114 &-3545392274464109919
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12,7 +31,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa905bddded3416d99a953b0736a5ff4, type: 3}
   m_Name: VIIIBitExplorerRenderFeature
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   material: {fileID: 2100000, guid: 0d95e438b960d394d813cd3b9de76019, type: 2}
 --- !u!114 &-1878332245247344467
 MonoBehaviour:
@@ -69,7 +88,9 @@ MonoBehaviour:
   - {fileID: -1878332245247344467}
   - {fileID: 277179481546076175}
   - {fileID: -3545392274464109919}
-  m_RendererFeatureMap: adc0de57c6d2eee50fb0941845bdd803a10a27bb823cccce
+  - {fileID: 8972910386934562399}
+  - {fileID: -9013459575597627865}
+  m_RendererFeatureMap: adc0de57c6d2eee50fb0941845bdd803a10a27bb823cccce5fbea5d6742e867c2706297745c2e982
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -138,3 +159,16 @@ MonoBehaviour:
   passIndex: 0
   bindDepthStencilAttachment: 0
   m_Version: 1
+--- !u!114 &8972910386934562399
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c0476e42541418699294945b246235d, type: 3}
+  m_Name: PageFlipRenderFeature
+  m_EditorClassIdentifier: 
+  m_Active: 0

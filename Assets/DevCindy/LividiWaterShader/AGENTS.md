@@ -22,6 +22,22 @@
 - 除非任务明确涉及行星水面，不要主动实现 Triplanar、球面 UV、行星法线映射、行星岸线或额外的行星专用 Shader variant 与测试矩阵。
 - 通用架构应允许未来接入行星模式，但不要求提前完成其实现。若可扩展性与当前平面路径的清晰度、性能或可维护性冲突，优先保证平面路径，并留下小而明确的扩展点。
 
+## 教学型实现与复杂度控制
+
+- 当用户明确表示正在学习 C#、Unity API 集成，或要求“教学向”“自己能够看懂”时，首要目标是让用户能逐行解释执行流程，而不是一次性交付覆盖所有边界条件的通用组件。
+- 本节适用于本目录中的所有 Unity 集成工作，包括 MonoBehaviour controller、Renderer Feature、ScriptableRenderPass、运行时 GameObject/Component 管理、材质与纹理绑定、编辑器工具和资源生命周期；不能只在 Camera 相关代码中遵守。
+- **不要用注释数量或文件物理总行数判断教学友好程度。** 教学注释应保留对设计原因、数学过程、API 语义、生命周期、执行顺序和方案取舍的解释；只删除重复表达、逐字复述代码或已经由命名完整说明的注释，不得仅为缩短文件而压缩有助于理解的内容。
+- 自检时既要检查代码结构，也要检查有效代码行数，不要矫枉过正地忽略任意一方。优先减少不必要的概念、依赖、运行时对象、回调、分支、样板代码、全局状态和抽象层；不要通过删减有效教学注释制造表面上的短小。
+- **有效代码行数是重要的复杂度与可维护性指标之一，但不是唯一指标。** 在功能、正确性和可读性相当时，应优先选择有效代码更少的实现；同时不得为了降低行数而合并职责、堆叠表达式、使用晦涩技巧或把清晰步骤压成难读的一行。
+- 比较或报告行数时，统计排除空行、单行注释、块注释和 XML 文档注释后的有效代码行，并可同时报告物理总行数作为文件规模信息。最终判断应综合有效代码行数、控制流、依赖关系、概念数量和注释质量，避免只看其中一个数字。
+- 先实现最小可运行机制，再分层增加正确性与工程能力。通常按“使用现有 Scene 对象和高层组件完成核心效果 → 补充可观察的正确性问题 → 加入资源释放与性能控制 → 最后处理自动化、多对象和边界场景”的顺序推进；不要默认把所有阶段合并进第一版。
+- Inspector 中显式拖引用、提前创建并配置 GameObject/Component、直接使用 Unity 内置组件和生命周期，都是教学版本可以接受的依赖。不得仅因为手动配置不够自动化，就直接换成运行时查找/创建对象、全局管理器、Renderer Feature、自定义 ScriptableRenderPass 或更底层的 SRP 回调。
+- “基于 Unity 2022.3 / URP 14”只表示实现必须与该版本兼容，不等于必须使用最低层、最新或最具扩展性的 API。应优先采用能够满足当前需求的最高层公共接口；只有当高层方案无法解决已经确认的渲染时机、数据访问、Pass 注入、对象所有权或性能问题时，才逐步下沉到 Render Feature、CommandBuffer、`beginCameraRendering`、`SubmitRenderRequest` 等机制。
+- 在引入自定义 View/Projection Matrix、`GL.invertCulling`、Oblique Projection、Renderer Feature、ScriptableRenderPass、CommandBuffer、隐藏运行时 GameObject、全局注册表等机制前，先说明它解决了最小版本中的哪个可观察问题，并保留一个更短方案作对照。用户尚未要求解决的扩展场景，应记录为限制，不应自动转化成实现复杂度。
+- 当用户提供更短、更容易理解的参考实现时，先完整分析其脚本、Shader、Scene/Inspector 和 Renderer 配置中的显式或隐含依赖，再决定补哪些最少的保护措施。不要因为参考实现缺少生产级自动化、资源管理或边界处理，就忽略它在教学可读性上的价值。
+- 对于平面反射，推荐按“手动配置主相机/反射相机与 RT → 镜像相机 Transform → Shader 采样 → 斜裁剪 → RT 重建与释放 → 多相机和性能策略”的顺序教学。这是上一条通用分层原则的具体示例，不是只适用于 Camera 的特例规则。
+- 平面反射的最小教学基线可参考 [unityrenderlab 的 PlanarReflectionManager](https://github.com/yunyou730/unityrenderlab/blob/main/RenderLabURP/Assets/Scenes/PlanarReflection/PlanarReflectionManager.cs)。它不是完整生产实现，但重写教学版 controller 时，应优先保留其“两台显式相机 + 局部空间镜像”的直观结构，再按实际问题逐项增强。
+
 ## 目录职责
 
 - `Shader/LividiWaterShader.shader`：ShaderLab 入口，定义材质属性、透明水体 Pass、编译指令和 CustomEditor。
