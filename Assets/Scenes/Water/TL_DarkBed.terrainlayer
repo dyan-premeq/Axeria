@@ -7,16 +7,16 @@ TerrainLayer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: TL_DarkBed
-  m_DiffuseTexture: {fileID: 2800000, guid: 8c1ae7ace14d2654baaf19f3c9aaade0, type: 3}
-  m_NormalMapTexture: {fileID: 2800000, guid: 27dc991612e89554e9b7141afb04d889, type: 3}
+  m_DiffuseTexture: {fileID: 2800000, guid: 8b33ca218589f4b44a0512fcb73ae635, type: 3}
+  m_NormalMapTexture: {fileID: 2800000, guid: 8dc3aa2f7c130d9419c1e579cd696c7d, type: 3}
   m_MaskMapTexture: {fileID: 0}
-  m_TileSize: {x: 2.6, y: 2.6}
+  m_TileSize: {x: 4.5, y: 4.5}
   m_TileOffset: {x: 0, y: 0}
-  m_Specular: {r: 0, g: 0, b: 0, a: 0}
+  m_Specular: {r: 0.06, g: 0.06, b: 0.06, a: 0}
   m_Metallic: 0
-  m_Smoothness: 0
-  m_NormalScale: 1
+  m_Smoothness: 0.22
+  m_NormalScale: 0.6
   m_DiffuseRemapMin: {x: 0, y: 0, z: 0, w: 0}
-  m_DiffuseRemapMax: {x: 0.62, y: 0.55, z: 0.45, w: 1}
+  m_DiffuseRemapMax: {x: 0.74, y: 0.74, z: 0.7, w: 1}
   m_MaskMapRemapMin: {x: 0, y: 0, z: 0, w: 0}
   m_MaskMapRemapMax: {x: 1, y: 1, z: 1, w: 1}
