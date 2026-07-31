@@ -46,15 +46,3 @@ This repository bundles third-party art assets. See
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for sources and licenses.
 
 The Lividi Water test scene was built with AI assistance.
-
----
-
-## About the Names
-
-The repository and its projects are named after maimai songs.
-
-| Name | Song |
-| --- | --- |
-| Axeria | [Axeria](https://silentblue.remywiki.com/Axeria) — maimai ORANGE PLUS |
-| Lividi | [Lividi](https://silentblue.remywiki.com/Lividi) — maimai MURASAKi |
-| VIIIbit Explorer | [VIIIbit Explorer](https://silentblue.remywiki.com/VIIIbit_Explorer) — maimai でらっくす Splash PLUS |

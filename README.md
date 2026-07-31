@@ -45,15 +45,3 @@ Working on.
 本仓库内含第三方美术资产，来源与许可见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
 
 Lividi Water 的测试场景的搭建使用了 AI 辅助。
-
----
-
-## 关于命名
-
-仓库和各项目均取名自 maimai 曲目。
-
-| 名字 | 曲目 |
-| --- | --- |
-| Axeria | [Axeria](https://silentblue.remywiki.com/Axeria) — maimai ORANGE PLUS |
-| Lividi | [Lividi](https://silentblue.remywiki.com/Lividi) — maimai MURASAKi |
-| VIIIbit Explorer | [VIIIbit Explorer](https://silentblue.remywiki.com/VIIIbit_Explorer) — maimai でらっくす Splash PLUS |
