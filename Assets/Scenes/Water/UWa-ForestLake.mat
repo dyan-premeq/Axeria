@@ -356,7 +356,7 @@ Material:
     - _Normal_Tile: 5
     - _Opacity: 0.787
     - _ParalaxDepth: 30
-    - _PlanarReflectionBlend: 0.838
+    - _PlanarReflectionBlend: 1
     - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
@@ -365,7 +365,7 @@ Material:
     - _ReflectionF0: 0.02
     - _ReflectionFresnel: 1
     - _ReflectionFresnelStrength: 0.3
-    - _ReflectionRoughness: 0.016
+    - _ReflectionRoughness: 0.172
     - _ReflectionStrength: 0.45
     - _Reflection_Distortion: 1.25
     - _Reflection_Fresnel: 6
@@ -482,12 +482,12 @@ Material:
     - _WORLDSPACEDEPTH: 1
     - _WaterDepth: 0.3
     - _WaterNormalScaling: 15
-    - _WaterNormalScalingRatio: 0
+    - _WaterNormalScalingRatio: 0.125
     - _WaterNormalSpeed: 0.6
     - _WaterNormalStrength: 0.45
     - _WaterSpecularHardness: 1
-    - _WaterSpecularSize: 0.342
-    - _WaterSpecularSpread: 0.683
+    - _WaterSpecularSize: 0.43
+    - _WaterSpecularSpread: 0.63
     - _Water_Depth: 0.3
     - _WaveHeight: 0.01
     - _WaveHeight2nd: 0.01
@@ -540,7 +540,7 @@ Material:
     - _FresnelColor: {r: 0.2647297, g: 0.116945416, b: 0.82641506, a: 1}
     - _GerstnerDirection: {r: 0.15, g: 0.73, b: 0.33, a: 0.52}
     - _GerstnerSpeed: {r: 0.55, g: 0.55, b: 0.55, a: 0.55}
-    - _GerstnerSteepness: {r: 0.03, g: 0.05, b: 0.02, a: 0.17}
+    - _GerstnerSteepness: {r: 0.17, g: 0.03, b: -0, a: 0.23}
     - _GerstnerWavelength: {r: 0.79, g: 5, b: 3.9, a: 2}
     - _InterSec_Color: {r: 0.9647059, g: 0.9125287, b: 0.46274513, a: 0.68235296}
     - _InterSec_Foam_Pan: {r: 0, g: 0, b: 0, a: 0}
@@ -590,7 +590,7 @@ Material:
     - _SurfaceFoam_Color: {r: 1, g: 1, b: 1, a: 1}
     - _SurfaceFoam_MaskPan: {r: 0.1, g: -0.3, b: 0, a: 0}
     - _SurfaceFoam_MaskTiling: {r: 1, g: 1, b: 0, a: 0}
-    - _UnderwaterFogHalfDistance: {r: 0.9, g: 2.7, b: 4.4, a: 0}
+    - _UnderwaterFogHalfDistance: {r: 2.5, g: 4, b: 8, a: 0}
     - _UnderwaterLayerColor: {r: 0.3019608, g: 0.62352943, b: 0.89019614, a: 0.35686275}
     - _Underwater_Color: {r: 0, g: 0, b: 0, a: 0.5019608}
     - _WaterNormalTiling: {r: 1, g: 1, b: 0, a: 0}
