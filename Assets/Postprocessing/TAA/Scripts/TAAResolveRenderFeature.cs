@@ -1,8 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering.Universal;
 
 namespace Axeria.PostProcessingLab.TAA
@@ -13,22 +13,29 @@ namespace Axeria.PostProcessingLab.TAA
         private sealed class TAAResolvePass : ScriptableRenderPass
         {
             private RTHandle cameraColorRT;
+            private RTHandle cameraDepthRT;
             private RTHandle tempColorRT;
             private RTHandle historyColorRT;
+            private RTHandle historyDepthRT;
 
             private bool isHistoryValid;
+            private int lastHistoryFrameCount;
+            private int historyCameraId;
 
             private readonly Material resolveMaterial;
             private float blendAlpha;
-            
+            private float threshold;
+
             private bool debugMV;
             private float debugMVScale;
             
             private bool debugReprojection;
 
             private static readonly int HistoryBufferId = Shader.PropertyToID("_HistoryBuffer");
-            private static readonly int AlphaId = Shader.PropertyToID("_BlendAlpha");
+            private static readonly int HistoryDepthBufferId = Shader.PropertyToID("_HistoryDepthBuffer");
             
+            private static readonly int AlphaId = Shader.PropertyToID("_BlendAlpha");
+            private static readonly int ThresholdId = Shader.PropertyToID("_DepthMaskThreshold");
             private static readonly int DebugMVFlagId = Shader.PropertyToID("_DebugMotionVector");
             private static readonly int DebugMVScaleId = Shader.PropertyToID("_DebugMotionVectorScale");
             
@@ -41,13 +48,18 @@ namespace Axeria.PostProcessingLab.TAA
                 resolveMaterial = material;
                 isHistoryValid = false;
 
+                lastHistoryFrameCount = -1;
+                historyCameraId = -1;
+
                 renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing; // 先 TAA 再后处理
             }
 
-            public void configurePass(RTHandle target, float a, bool debug1, float scale, bool debug2)
+            public void configurePass(RTHandle color, RTHandle depth, float a, float h, bool debug1, float scale, bool debug2)
             {
-                cameraColorRT = target;
+                cameraColorRT = color;
+                cameraDepthRT = depth;
                 blendAlpha = a;
+                threshold = h;
                 debugMV = debug1;
                 debugMVScale = scale;
                 debugReprojection = debug2;
@@ -60,11 +72,19 @@ namespace Axeria.PostProcessingLab.TAA
                 RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
                 desc.msaaSamples = 1;       // 普通单采样纹理 
                 desc.depthBufferBits = 0;   //　颜色纹理，不额外创建深度
+                // historyCameraId = renderingData.cameraData.camera.gameObject.GetInstanceID();
 
                 // ReAllocateIfNeeded 每帧都可以调用，但描述没有变化时不会重新创建纹理
                 RenderingUtils.ReAllocateIfNeeded(ref tempColorRT, desc, FilterMode.Bilinear, TextureWrapMode.Clamp, false, 1, 0, "_TAA_TempColorTexture");
-                bool isReallocated = RenderingUtils.ReAllocateIfNeeded(ref historyColorRT, desc, FilterMode.Bilinear, TextureWrapMode.Clamp, false, 1, 0, "_TAA_HistoryTexture");
-                if (isReallocated) {
+
+                bool isColorReallocated = RenderingUtils.ReAllocateIfNeeded(ref historyColorRT, desc, FilterMode.Bilinear, TextureWrapMode.Clamp, false, 1, 0, "_TAA_ColorHistoryTexture");
+
+                desc.graphicsFormat = GraphicsFormat.R32_SFloat;
+                desc.depthStencilFormat = GraphicsFormat.None;
+                desc.depthBufferBits = 0;
+                bool isDepthReallocated = RenderingUtils.ReAllocateIfNeeded(ref historyDepthRT, desc, FilterMode.Point, TextureWrapMode.Clamp, false, 1, 0, "_TAA_DepthHistoryTexture");
+
+                if (isColorReallocated | isDepthReallocated) {
                     isHistoryValid = false;
                 }
 
@@ -79,6 +99,14 @@ namespace Axeria.PostProcessingLab.TAA
                 CommandBuffer cmd = CommandBufferPool.Get("TAA Resolve Test");
                 // cmd.ClearRenderTarget(false, true, Color.magenta); // 不清深度，屏幕颜色清成洋红色
                 // Blitter.BlitCameraTexture(cmd, cameraColorRT, tempColorRT);
+
+                // int currentCameraId = renderingData.cameraData.camera.GetInstanceID();
+                // int currentFrameCount = Time.frameCount;
+                // if (!isHistoryValid || currentFrameCount != lastHistoryFrameCount + 1 || currentCameraId != historyCameraId)
+                // {
+                    // isHistoryValid = false;
+                // }
+
                 if (debugMV)
                 {
                     resolveMaterial.SetFloat(DebugMVFlagId, 1f);
@@ -92,6 +120,7 @@ namespace Axeria.PostProcessingLab.TAA
                     if (!isHistoryValid)
                     {
                         Blitter.BlitCameraTexture(cmd, cameraColorRT, historyColorRT);
+                        Blitter.BlitCameraTexture(cmd, cameraDepthRT, historyDepthRT);
                         isHistoryValid = true;
                     }
                     else
@@ -99,17 +128,25 @@ namespace Axeria.PostProcessingLab.TAA
                         resolveMaterial.SetFloat(DebugMVFlagId, 0f);
                         resolveMaterial.SetFloat(DebugReprojectionFlagId, 1f);
                         resolveMaterial.SetTexture(HistoryBufferId, historyColorRT);
+                        resolveMaterial.SetTexture(HistoryDepthBufferId, historyDepthRT);
                         resolveMaterial.SetFloat(AlphaId, blendAlpha);
-                        Blitter.BlitCameraTexture(cmd, cameraColorRT, tempColorRT, resolveMaterial, 0); // Reprojection debugBlitter.BlitCameraTexture(cmd, cameraColorRT, historyColorRT);
+                        resolveMaterial.SetFloat(ThresholdId, threshold);
+                        Blitter.BlitCameraTexture(cmd, cameraColorRT, tempColorRT, resolveMaterial, 0); // Reprojection debug
                         Blitter.BlitCameraTexture(cmd, cameraColorRT, historyColorRT);
+                        Blitter.BlitCameraTexture(cmd, cameraDepthRT, historyDepthRT);
+                        
                         Blitter.BlitCameraTexture(cmd, tempColorRT, cameraColorRT);              
                     }
+                    // lastHistoryFrameCount = currentFrameCount;
+                    // historyCameraId = currentCameraId;
                 }
                 else
                 {
                     if (!isHistoryValid)
                     {
                         Blitter.BlitCameraTexture(cmd, cameraColorRT, historyColorRT);
+                        Blitter.BlitCameraTexture(cmd, cameraDepthRT, historyDepthRT);
+
                         isHistoryValid = true;
                     }
                     else
@@ -117,12 +154,16 @@ namespace Axeria.PostProcessingLab.TAA
                         resolveMaterial.SetFloat(DebugMVFlagId, 0f);
                         resolveMaterial.SetFloat(DebugReprojectionFlagId, 0f); 
                         resolveMaterial.SetTexture(HistoryBufferId, historyColorRT);
+                        resolveMaterial.SetTexture(HistoryDepthBufferId, historyDepthRT);
                         resolveMaterial.SetFloat(AlphaId, blendAlpha);
+                        resolveMaterial.SetFloat(ThresholdId, threshold);
                         Blitter.BlitCameraTexture(cmd, cameraColorRT, tempColorRT, resolveMaterial, 0); // Temporal Accumulation
                         Blitter.BlitCameraTexture(cmd, tempColorRT, historyColorRT);
                         Blitter.BlitCameraTexture(cmd, tempColorRT, cameraColorRT); 
-
+                        Blitter.BlitCameraTexture(cmd, cameraDepthRT, historyDepthRT);
                     }
+                    // lastHistoryFrameCount = currentFrameCount;
+                    // historyCameraId = currentCameraId;
                 }
                 
                 ctx.ExecuteCommandBuffer(cmd);
@@ -137,7 +178,15 @@ namespace Axeria.PostProcessingLab.TAA
                 historyColorRT?.Release();
                 historyColorRT = null;
 
+                historyDepthRT?.Release();
+                historyDepthRT = null;
+
                 cameraColorRT = null;
+                cameraDepthRT = null;
+
+                isHistoryValid = false;
+                historyCameraId = -1;
+                lastHistoryFrameCount = -1;
             }
         }
 
@@ -147,6 +196,8 @@ namespace Axeria.PostProcessingLab.TAA
         [SerializeField]
         private Material debugResolveMaterial;
         public float blendAlpha = 0.9f;
+
+        public float depthMaskThreshold = 0.05f;
         
         public bool debugMotionVector = false;
         public float debugMotionVectorScale = 40f;
@@ -165,7 +216,7 @@ namespace Axeria.PostProcessingLab.TAA
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
             if(renderingData.cameraData.cameraType != CameraType.Game) return;
-            resolvePass.ConfigureInput(ScriptableRenderPassInput.Motion); // 我要运动向量 T T
+            resolvePass.ConfigureInput(ScriptableRenderPassInput.Motion | ScriptableRenderPassInput.Depth); // 我要运动向量和深度
             renderer.EnqueuePass(resolvePass);
             return;
         }
@@ -174,8 +225,10 @@ namespace Axeria.PostProcessingLab.TAA
         {
             if(renderingData.cameraData.cameraType != CameraType.Game) return;
             resolvePass.configurePass(
-                renderer.cameraColorTargetHandle, 
+                renderer.cameraColorTargetHandle,
+                renderer.cameraDepthTargetHandle, 
                 blendAlpha, 
+                depthMaskThreshold,
                 debugMotionVector, 
                 debugMotionVectorScale,
                 debugProjectedHistory);
@@ -190,4 +243,3 @@ namespace Axeria.PostProcessingLab.TAA
 
     }
 }
-

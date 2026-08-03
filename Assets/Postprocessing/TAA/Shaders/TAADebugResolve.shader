@@ -18,15 +18,23 @@ Shader "Hidden/Axeria/Postprocessing/TAADebugResolve"
             HLSLPROGRAM
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
+
 
             #pragma vertex Vert
             #pragma fragment frag
 
             float _BlendAlpha;
+            float _DepthMaskThreshold;
             TEXTURE2D(_HistoryBuffer);
             SAMPLER(sampler_HistoryBuffer);
+
+            TEXTURE2D(_HistoryDepthBuffer);
+            SAMPLER(sampler_HistoryDepthBuffer);
             
             TEXTURE2D_X(_MotionVectorTexture);
+            
+            // float4 texelSize = _ScreenSize;
             
             float _DebugMotionVector;
             float _DebugMotionVectorScale;
@@ -46,23 +54,32 @@ Shader "Hidden/Axeria/Postprocessing/TAADebugResolve"
                 }
                 
                 
+
+                half4 currSample = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord);
+                float currentLinearDepth = Linear01Depth(SampleSceneDepth(IN.texcoord), _ZBufferParams);
+
                 float2 reprojectedUV = IN.texcoord - rawMotionVec; 
                 bool isRepUvValid = all((reprojectedUV >= 0.0) & (reprojectedUV <= 1.0));
-                half4 historyCol = SAMPLE_TEXTURE2D(_HistoryBuffer, sampler_HistoryBuffer, reprojectedUV);
-                half4 currSample = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord);
                 
                 if (!isRepUvValid)
                 {
-                    historyCol = currSample;
+                    reprojectedUV = IN.texcoord;
                 }
+
+                half4 historyCol = SAMPLE_TEXTURE2D(_HistoryBuffer, sampler_HistoryBuffer, reprojectedUV);
+                float historyDepth = Linear01Depth(SAMPLE_TEXTURE2D(_HistoryDepthBuffer, sampler_PointClamp, reprojectedUV), _ZBufferParams);
+                float depthMask = currentLinearDepth - historyDepth;
+                depthMask = (currentLinearDepth - historyDepth) / currentLinearDepth;
+
+                float alpha = _BlendAlpha * (1 - step( _DepthMaskThreshold, depthMask));
                 
                 if (debugReprojectrion)
                 {
-                    // half4 currSample = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord);
-                    return historyCol;
+                    return currSample * step( _DepthMaskThreshold, depthMask);
+                    // return historyCol;
                 }
-                
-                half4 color = _BlendAlpha * historyCol + (1 - _BlendAlpha) * currSample;
+
+                half4 color = alpha * historyCol + (1 - alpha) * currSample;
                 return color;
             }
             ENDHLSL

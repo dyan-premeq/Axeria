@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f46d0075892dcd4491567ed566eae7a, type: 3}
   m_Name: TAAResolveRenderFeature
   m_EditorClassIdentifier: 
-  m_Active: 0
+  m_Active: 1
   debugResolveMaterial: {fileID: 2100000, guid: 661ff7d77b7949d4ab13a8c6ba760635,
     type: 2}
   blendAlpha: 0.9
