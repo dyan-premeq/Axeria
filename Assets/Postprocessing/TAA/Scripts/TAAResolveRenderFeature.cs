@@ -20,13 +20,20 @@ namespace Axeria.PostProcessingLab.TAA
 
             private readonly Material resolveMaterial;
             private float blendAlpha;
+            
             private bool debugMV;
             private float debugMVScale;
+            
+            private bool debugReprojection;
 
             private static readonly int HistoryBufferId = Shader.PropertyToID("_HistoryBuffer");
             private static readonly int AlphaId = Shader.PropertyToID("_BlendAlpha");
+            
             private static readonly int DebugMVFlagId = Shader.PropertyToID("_DebugMotionVector");
             private static readonly int DebugMVScaleId = Shader.PropertyToID("_DebugMotionVectorScale");
+            
+            private static readonly int DebugReprojectionFlagId = Shader.PropertyToID("_DebugReprojection");
+
 
             public TAAResolvePass(string passName, Material material)
             {
@@ -37,12 +44,13 @@ namespace Axeria.PostProcessingLab.TAA
                 renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing; // 先 TAA 再后处理
             }
 
-            public void configurePass(RTHandle target, float a, bool debug, float scale)
+            public void configurePass(RTHandle target, float a, bool debug1, float scale, bool debug2)
             {
                 cameraColorRT = target;
                 blendAlpha = a;
-                debugMV = debug;
+                debugMV = debug1;
                 debugMVScale = scale;
+                debugReprojection = debug2;
             }
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -75,9 +83,27 @@ namespace Axeria.PostProcessingLab.TAA
                 {
                     resolveMaterial.SetFloat(DebugMVFlagId, 1f);
                     resolveMaterial.SetFloat(DebugMVScaleId, debugMVScale);
-                    Blitter.BlitCameraTexture(cmd, cameraColorRT, tempColorRT, resolveMaterial, 0); // Temporal Accumulation
+                    Blitter.BlitCameraTexture(cmd, cameraColorRT, tempColorRT, resolveMaterial, 0); // MV debug
                     Blitter.BlitCameraTexture(cmd, tempColorRT, cameraColorRT);
                     isHistoryValid = false;
+                }
+                else if (debugReprojection)
+                {
+                    if (!isHistoryValid)
+                    {
+                        Blitter.BlitCameraTexture(cmd, cameraColorRT, historyColorRT);
+                        isHistoryValid = true;
+                    }
+                    else
+                    {
+                        resolveMaterial.SetFloat(DebugMVFlagId, 0f);
+                        resolveMaterial.SetFloat(DebugReprojectionFlagId, 1f);
+                        resolveMaterial.SetTexture(HistoryBufferId, historyColorRT);
+                        resolveMaterial.SetFloat(AlphaId, blendAlpha);
+                        Blitter.BlitCameraTexture(cmd, cameraColorRT, tempColorRT, resolveMaterial, 0); // Reprojection debugBlitter.BlitCameraTexture(cmd, cameraColorRT, historyColorRT);
+                        Blitter.BlitCameraTexture(cmd, cameraColorRT, historyColorRT);
+                        Blitter.BlitCameraTexture(cmd, tempColorRT, cameraColorRT);              
+                    }
                 }
                 else
                 {
@@ -89,6 +115,7 @@ namespace Axeria.PostProcessingLab.TAA
                     else
                     {
                         resolveMaterial.SetFloat(DebugMVFlagId, 0f);
+                        resolveMaterial.SetFloat(DebugReprojectionFlagId, 0f); 
                         resolveMaterial.SetTexture(HistoryBufferId, historyColorRT);
                         resolveMaterial.SetFloat(AlphaId, blendAlpha);
                         Blitter.BlitCameraTexture(cmd, cameraColorRT, tempColorRT, resolveMaterial, 0); // Temporal Accumulation
@@ -120,8 +147,11 @@ namespace Axeria.PostProcessingLab.TAA
         [SerializeField]
         private Material debugResolveMaterial;
         public float blendAlpha = 0.9f;
+        
         public bool debugMotionVector = false;
         public float debugMotionVectorScale = 40f;
+
+        public bool debugProjectedHistory = false;
         
         public override void Create()
         {   
@@ -143,7 +173,12 @@ namespace Axeria.PostProcessingLab.TAA
         public override void SetupRenderPasses(ScriptableRenderer renderer, in RenderingData renderingData)
         {
             if(renderingData.cameraData.cameraType != CameraType.Game) return;
-            resolvePass.configurePass(renderer.cameraColorTargetHandle, blendAlpha, debugMotionVector, debugMotionVectorScale);
+            resolvePass.configurePass(
+                renderer.cameraColorTargetHandle, 
+                blendAlpha, 
+                debugMotionVector, 
+                debugMotionVectorScale,
+                debugProjectedHistory);
             // renderer 持有 camera color 的句柄，通过 feature 传给 render pass 来借用
         }
 
@@ -152,7 +187,6 @@ namespace Axeria.PostProcessingLab.TAA
             resolvePass?.ReleaseResources();
             resolvePass = null;
         }
-
 
     }
 }
