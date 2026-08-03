@@ -66,7 +66,7 @@ Shader "Hidden/Axeria/Postprocessing/TAADebugResolve"
                     reprojectedUV = IN.texcoord;
                 }
 
-                half4 historyCol = SAMPLE_TEXTURE2D(_HistoryBuffer, sampler_HistoryBuffer, reprojectedUV);
+                half4 historyCol = SAMPLE_TEXTURE2D(_HistoryBuffer, sampler_LinearClamp, reprojectedUV);
                 float historyDepth = Linear01Depth(SAMPLE_TEXTURE2D(_HistoryDepthBuffer, sampler_PointClamp, reprojectedUV), _ZBufferParams);
                 float depthMask = currentLinearDepth - historyDepth;
                 depthMask = (currentLinearDepth - historyDepth) / currentLinearDepth;
