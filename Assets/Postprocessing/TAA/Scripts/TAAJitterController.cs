@@ -15,7 +15,13 @@ namespace Axeria.PostProcessingLab.TAA
 
         private float dWidth, dHeight;
         private int jitterFrameIndex;
-        private static readonly Vector2[] Halton_2_3 =
+
+        private int JitterUvDeltaId = Shader.PropertyToID("_TAA_JitterUvDelta");
+
+        [NonSerialized]public Vector2 jitterUvDelta;
+        private Vector2 prevJitterNdc;
+        
+        private static readonly Vector2[] Halton23 =
         {
             new Vector2(0.0f, -1.0f / 3.0f),
             new Vector2(-1.0f / 2.0f, 1.0f / 3.0f),
@@ -86,13 +92,19 @@ namespace Axeria.PostProcessingLab.TAA
             // float jitterPixelX = (jitterFrameIndex & 1) == 0 ? jitterPixelStrength : -jitterPixelStrength;
             // float jitterNdcX = 2f * jitterPixelX * dWidth; // NDC [-1,1]^2 so 一个像素跨过 2/width
 
-            Vector2 haltonSample = Halton_2_3[jitterFrameIndex & 7];
-
+            Vector2 haltonSample = Halton23[jitterFrameIndex & 7];
+            
             float jitterNdcX = haltonSample.x * dWidth * jitterPixelStrength;
             float jitterNdcY = haltonSample.y * dHeight * jitterPixelStrength;
+            
+            Vector2 jitterNdc = new Vector2(jitterNdcX, jitterNdcY);
+            jitterUvDelta = (jitterNdc - prevJitterNdc) * 0.5f;
+            prevJitterNdc = jitterNdc;
+            Shader.SetGlobalVector(JitterUvDeltaId, jitterUvDelta);
 
             jitteredProjection.m02 -= jitterNdcX;
             jitteredProjection.m12 -= jitterNdcY;
+            
 
             // Matrix4x4 jitterMatrix = Matrix4x4.Translate(new Vector3(jitterNdcX, jitterNdcY, 0.0f)); 
             // // 这个是创建一个按照指定的 vector 平移的矩阵

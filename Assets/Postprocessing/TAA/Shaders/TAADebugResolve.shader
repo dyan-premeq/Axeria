@@ -27,14 +27,13 @@ Shader "Hidden/Axeria/Postprocessing/TAADebugResolve"
             float _BlendAlpha;
             float _DepthMaskThreshold;
             TEXTURE2D(_HistoryBuffer);
-            SAMPLER(sampler_HistoryBuffer);
-
             TEXTURE2D(_HistoryDepthBuffer);
-            SAMPLER(sampler_HistoryDepthBuffer);
-            
             TEXTURE2D_X(_MotionVectorTexture);
             
-            // float4 texelSize = _ScreenSize;
+            float _UseDepthCorrection;
+            float _UseClamping;
+            
+            float4 _TAA_JitterUvDelta;
             
             float _DebugMotionVector;
             float _DebugMotionVectorScale;
@@ -46,14 +45,14 @@ Shader "Hidden/Axeria/Postprocessing/TAADebugResolve"
                 bool debugMV = _DebugMotionVector > .5;
                 bool debugReprojectrion = _DebugReprojection > .5;
                 float2 rawMotionVec = SAMPLE_TEXTURE2D_X(_MotionVectorTexture, sampler_PointClamp, IN.texcoord).xy;
+                rawMotionVec.x -= _TAA_JitterUvDelta.x;
+                rawMotionVec.y -= _TAA_JitterUvDelta.y;
                 
                 if (debugMV)
                 {
                     float2 encodedMotion = saturate(0.5 + rawMotionVec * _DebugMotionVectorScale);
                     return half4(encodedMotion.x, encodedMotion.y, 0.5, 1.0);
                 }
-                
-                
 
                 half4 currSample = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord);
                 float currentLinearDepth = Linear01Depth(SampleSceneDepth(IN.texcoord), _ZBufferParams);
@@ -67,18 +66,65 @@ Shader "Hidden/Axeria/Postprocessing/TAADebugResolve"
                 }
 
                 half4 historyCol = SAMPLE_TEXTURE2D(_HistoryBuffer, sampler_LinearClamp, reprojectedUV);
-                float historyDepth = Linear01Depth(SAMPLE_TEXTURE2D(_HistoryDepthBuffer, sampler_PointClamp, reprojectedUV), _ZBufferParams);
+                // float historyDepth = Linear01Depth(SAMPLE_TEXTURE2D(_HistoryDepthBuffer, sampler_PointClamp, reprojectedUV), _ZBufferParams);
+
+                float2 samplingUV = 0;
+                float4 neighbourVal = 0;
+                float4 minn = REAL_MAX;
+                float4 maxx = 0; 
+                UNITY_UNROLL
+                for (int di = -1; di < 2; ++di)
+                {
+                    for (int dj = -1; dj < 2; ++dj)
+                    {
+                        samplingUV = IN.texcoord + float2(_ScreenSize.z * di, _ScreenSize.w * dj);
+                        neighbourVal = SAMPLE_TEXTURE2D(_BlitTexture, sampler_PointClamp, samplingUV);
+                        minn = min(minn, neighbourVal);
+                        maxx = max(maxx, neighbourVal);
+                    }
+                }
+                
+                #if UNITY_REVERSED_Z
+                float historyDepthRaw = 10;
+                #else
+                float historyDepthRaw = 0;
+                #endif
+                
+                UNITY_UNROLL
+                for (int di = -1; di < 2; ++di)
+                {
+                    for (int dj = -1; dj < 2; ++dj)
+                    {
+                        float2 duv = reprojectedUV + float2(_ScreenSize.z * di, _ScreenSize.w * dj);
+                        float d = SAMPLE_TEXTURE2D(_HistoryDepthBuffer, sampler_PointClamp, duv).r;
+                        #if UNITY_REVERSED_Z 
+                        historyDepthRaw = min(historyDepthRaw, d);
+                        #else 
+                        historyDepthRaw = max(historyDepthRaw, d);
+                        #endif
+                        
+                    }
+                }
+                float historyDepth = Linear01Depth(historyDepthRaw, _ZBufferParams);
+                
+                half4 rawHistory = historyCol;
+                historyCol = lerp(rawHistory, clamp(historyCol, minn, maxx), _UseClamping);
+                
                 float depthMask = currentLinearDepth - historyDepth;
                 depthMask = (currentLinearDepth - historyDepth) / currentLinearDepth;
 
-                float alpha = _BlendAlpha * (1 - step( _DepthMaskThreshold, depthMask));
+                float alpha = _BlendAlpha * (1 - _UseDepthCorrection * step( _DepthMaskThreshold, depthMask));
+                
+                
+                // return half4(historyCol.rgb, 1.0);
                 
                 if (debugReprojectrion)
                 {
+                    // return half4(abs(rawHistory.rgb - historyCol.rgb), 1.0);
+                    // return half4((maxx - minn).rgb, 1);
                     return currSample * step( _DepthMaskThreshold, depthMask);
-                    // return historyCol;
                 }
-
+                
                 half4 color = alpha * historyCol + (1 - alpha) * currSample;
                 return color;
             }
