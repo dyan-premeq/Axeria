@@ -15,9 +15,11 @@ MonoBehaviour:
   m_Active: 1
   debugResolveMaterial: {fileID: 2100000, guid: 661ff7d77b7949d4ab13a8c6ba760635,
     type: 2}
-  blendAlpha: 0.9
+  blendAlpha: 0.95
+  depthMaskThreshold: 0.05
+  mode: 3
   debugMotionVector: 0
-  debugMotionVectorScale: 500
+  debugMotionVectorScale: 50000
   debugProjectedHistory: 0
 --- !u!114 &-3545392274464109919
 MonoBehaviour:
@@ -45,7 +47,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f62c9c65cf3354c93be831c8bc075510, type: 3}
   m_Name: SSAO
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   m_Settings:
     AOMethod: 1
     Downsample: 0
