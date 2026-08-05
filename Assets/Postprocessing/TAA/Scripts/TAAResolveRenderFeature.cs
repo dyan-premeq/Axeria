@@ -27,6 +27,7 @@ namespace Axeria.PostProcessingLab.TAA
             private float debugMVScale;
             
             private bool debugReprojection;
+            private bool useMotionVectorDilation;
 
             private static readonly int HistoryBufferId = Shader.PropertyToID("_HistoryBuffer");
             private static readonly int HistoryDepthBufferId = Shader.PropertyToID("_HistoryDepthBuffer");
@@ -38,6 +39,7 @@ namespace Axeria.PostProcessingLab.TAA
             
             private static readonly int UseDepthCorrectionId = Shader.PropertyToID("_UseDepthCorrection");
             private static readonly int UseClampId = Shader.PropertyToID("_UseClamping");
+            private static readonly int UseMotionVectorDilationId = Shader.PropertyToID("_UseMotionVectorDilation");
 
             private static readonly int DebugReprojectionFlagId = Shader.PropertyToID("_DebugReprojection");
 
@@ -50,7 +52,7 @@ namespace Axeria.PostProcessingLab.TAA
                 renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing; // 先 TAA 再后处理
             }
 
-            public void configurePass(RTHandle color, RTHandle depth, float a, float h, bool debug1, float scale, bool debug2, CorrectionMode mode)
+            public void configurePass(RTHandle color, RTHandle depth, float a, float h, bool debug1, float scale, bool debug2, CorrectionMode mode, bool dilation)
             {
                 cameraColorRT = color;
                 cameraDepthRT = depth;
@@ -60,6 +62,7 @@ namespace Axeria.PostProcessingLab.TAA
                 debugMVScale = scale;
                 debugReprojection = debug2;
                 this.mode = mode;
+                useMotionVectorDilation = dilation;
             }
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -100,6 +103,8 @@ namespace Axeria.PostProcessingLab.TAA
                 // cmd.ClearRenderTarget(false, true, Color.magenta); // 不清深度，屏幕颜色清成洋红色
                 // Blitter.BlitCameraTexture(cmd, cameraColorRT, tempColorRT);
             
+                resolveMaterial.SetFloat(UseMotionVectorDilationId, useMotionVectorDilation ? 1f : 0f);
+
                 if (mode == CorrectionMode.Both)
                 {
                     resolveMaterial.SetFloat(UseDepthCorrectionId, 1f);
@@ -219,6 +224,8 @@ namespace Axeria.PostProcessingLab.TAA
         public float debugMotionVectorScale = 40f;
 
         public bool debugProjectedHistory = false;
+
+        public bool useMotionVectorDilation = false;
         
         public override void Create()
         {   
@@ -249,7 +256,8 @@ namespace Axeria.PostProcessingLab.TAA
                 debugMotionVector, 
                 debugMotionVectorScale,
                 debugProjectedHistory,
-                mode);
+                mode,
+                useMotionVectorDilation);
             // renderer 持有 camera color 的句柄，通过 feature 传给 render pass 来借用
         }
 
