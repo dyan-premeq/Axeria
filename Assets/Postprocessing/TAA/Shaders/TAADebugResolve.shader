@@ -34,6 +34,8 @@ Shader "Hidden/Axeria/Postprocessing/TAADebugResolve"
             float _UseClamping;
             float _UseMotionVectorDilation;
             
+            float _VarianceGamma;
+            
             float4 _TAA_JitterUvDelta;
             
             float _DebugMotionVector;
@@ -69,10 +71,10 @@ Shader "Hidden/Axeria/Postprocessing/TAADebugResolve"
                         }
                     }
                 }
-
+                
+                // 直接修改 proj matrix 的 jitter。 需要传入 jitter 来抵消影响
                 rawMotionVec.x -= _TAA_JitterUvDelta.x;
                 rawMotionVec.y -= _TAA_JitterUvDelta.y;
-
 
                 if (debugMV)
                 {
@@ -93,10 +95,15 @@ Shader "Hidden/Axeria/Postprocessing/TAADebugResolve"
                 half4 historyCol = SAMPLE_TEXTURE2D(_HistoryBuffer, sampler_LinearClamp, reprojectedUV);
                 // float historyDepth = Linear01Depth(SAMPLE_TEXTURE2D(_HistoryDepthBuffer, sampler_PointClamp, reprojectedUV), _ZBufferParams);
 
+                // -- AABB Clamping/Clipping --
+                
                 float2 samplingUV = 0;
                 float3 neighbourVal = 0;
                 float3 minn = REAL_MAX;
                 float3 maxx = -REAL_MAX; 
+                float3 m1 = 0;
+                float3 m2 = 0;
+                
                 UNITY_UNROLL
                 for (int di = -1; di < 2; ++di)
                 {
@@ -106,10 +113,18 @@ Shader "Hidden/Axeria/Postprocessing/TAADebugResolve"
                         neighbourVal = RGBToYCoCg(SAMPLE_TEXTURE2D(_BlitTexture, sampler_PointClamp, samplingUV).rgb);
                         minn = min(minn, neighbourVal);
                         maxx = max(maxx, neighbourVal);
+                        m1 += neighbourVal;
+                        m2 += neighbourVal * neighbourVal;
                     }
                 }
                 
+                float3 mean   = m1 / 9.0;
+                float3 stdDev = sqrt(abs(m2 / 9.0 - mean * mean));
+                minn = max(minn, mean - _VarianceGamma * stdDev);
+                maxx = min(maxx, mean + _VarianceGamma * stdDev);
+                // currently clamping. clipping is the next job to do.
                 
+                // 这里是深度邻域容差，不太满意，后面应该要去掉，变成之前的 单点深度检测 + 适应性 alpha (not planned) 
                 historyDepthRaw = 10;
                 
                 UNITY_UNROLL
@@ -120,7 +135,6 @@ Shader "Hidden/Axeria/Postprocessing/TAADebugResolve"
                         float2 duv = reprojectedUV + float2(_ScreenSize.z * di, _ScreenSize.w * dj);
                         float d = SAMPLE_TEXTURE2D(_HistoryDepthBuffer, sampler_PointClamp, duv).r;
                         historyDepthRaw = min(historyDepthRaw, d);
-                        
                     }
                 }
                 

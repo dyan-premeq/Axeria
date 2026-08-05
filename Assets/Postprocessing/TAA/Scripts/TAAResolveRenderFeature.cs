@@ -28,6 +28,7 @@ namespace Axeria.PostProcessingLab.TAA
             
             private bool debugReprojection;
             private bool useMotionVectorDilation;
+            public float varianceGamma;
 
             private static readonly int HistoryBufferId = Shader.PropertyToID("_HistoryBuffer");
             private static readonly int HistoryDepthBufferId = Shader.PropertyToID("_HistoryDepthBuffer");
@@ -40,6 +41,7 @@ namespace Axeria.PostProcessingLab.TAA
             private static readonly int UseDepthCorrectionId = Shader.PropertyToID("_UseDepthCorrection");
             private static readonly int UseClampId = Shader.PropertyToID("_UseClamping");
             private static readonly int UseMotionVectorDilationId = Shader.PropertyToID("_UseMotionVectorDilation");
+            private static readonly int VarianceGammaId = Shader.PropertyToID("_VarianceGamma");
 
             private static readonly int DebugReprojectionFlagId = Shader.PropertyToID("_DebugReprojection");
 
@@ -52,7 +54,7 @@ namespace Axeria.PostProcessingLab.TAA
                 renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing; // 先 TAA 再后处理
             }
 
-            public void configurePass(RTHandle color, RTHandle depth, float a, float h, bool debug1, float scale, bool debug2, CorrectionMode mode, bool dilation)
+            public void configurePass(RTHandle color, RTHandle depth, float a, float h, bool debug1, float scale, bool debug2, CorrectionMode mode, bool dilation, float gamma)
             {
                 cameraColorRT = color;
                 cameraDepthRT = depth;
@@ -63,6 +65,7 @@ namespace Axeria.PostProcessingLab.TAA
                 debugReprojection = debug2;
                 this.mode = mode;
                 useMotionVectorDilation = dilation;
+                varianceGamma = gamma;
             }
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -104,6 +107,7 @@ namespace Axeria.PostProcessingLab.TAA
                 // Blitter.BlitCameraTexture(cmd, cameraColorRT, tempColorRT);
             
                 resolveMaterial.SetFloat(UseMotionVectorDilationId, useMotionVectorDilation ? 1f : 0f);
+                resolveMaterial.SetFloat(VarianceGammaId, varianceGamma);
 
                 if (mode == CorrectionMode.Both)
                 {
@@ -226,6 +230,9 @@ namespace Axeria.PostProcessingLab.TAA
         public bool debugProjectedHistory = false;
 
         public bool useMotionVectorDilation = false;
+
+        [Range(0.001f, 10f)]
+        public float varianceGamma = 0.9f;
         
         public override void Create()
         {   
@@ -257,7 +264,8 @@ namespace Axeria.PostProcessingLab.TAA
                 debugMotionVectorScale,
                 debugProjectedHistory,
                 mode,
-                useMotionVectorDilation);
+                useMotionVectorDilation,
+                varianceGamma);
             // renderer 持有 camera color 的句柄，通过 feature 传给 render pass 来借用
         }
 
